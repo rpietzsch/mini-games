@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: Arial, sans-serif;
+        }
+        .game-container {
+            text-align: center;
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        canvas {
+            border: 2px solid #0f3460;
+            background: #0f3460;
+            display: block;
+            margin: 0 auto;
+            outline: none;
+        }
+        .score {
+            color: #e94560;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        .game-over {
+            color: #e94560;
+            font-size: 32px;
+            margin: 20px 0;
+        }
+        .restart-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .restart-btn:hover {
+            background: #d63447;
+        }
+        .speed-selector {
+            margin: 15px 0;
+            color: #e94560;
+            font-size: 16px;
+        }
+        .speed-selector select {
+            background: #16213e;
+            color: #e94560;
+            border: 2px solid #e94560;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        .speed-selector select:focus {
+            outline: none;
+            border-color: #d63447;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score">Score: <span id="score">0</span> | High Score: <span id="highScore">0</span></div>
+        <div class="speed-selector">
+            Speed Level:
+            <select id="speedLevel">
+                <option value="simple">Simple (Slow)</option>
+                <option value="normal" selected>Normal</option>
+                <option value="hard">Hard (Fast)</option>
+            </select>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div id="gameOver" class="game-over" style="display: none;">
+            Game Over!
+            <br>
+            <button class="restart-btn" onclick="restartGame()">Restart</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const gameOverElement = document.getElementById('gameOver');
+        const speedSelector = document.getElementById('speedLevel');
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let snake = [
+            {x: 10, y: 10}
+        ];
+        let food = {};
+        let dx = 0;
+        let dy = 0;
+        let score = 0;
+        let highScore = localStorage.getItem('snakeHighScore') || 0;
+        let gameRunning = true;
+        let gameInterval;
+        let currentSpeed = 'normal';
+        let gimmick = null;
+        let gimmickTimer = 0;
+        let gimmickCooldown = 100; // appear every ~20 seconds at normal speed
+        let gimmickDuration = 75; // disappear after ~15 seconds at normal speed
+        let gimmickActive = false;
+        let shortestPathDistance = 0;
+        let actualPathDistance = 0;
+        
+        const speedSettings = {
+            simple: 300,
+            normal: 200,
+            hard: 120
+        };
+
+        function generateFood() {
+            food = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            };
+            calculateShortestPath();
+        }
+        
+        function generateGimmick() {
+            let attempts = 0;
+            do {
+                gimmick = {
+                    x: Math.floor(Math.random() * tileCount),
+                    y: Math.floor(Math.random() * tileCount)
+                };
+                attempts++;
+            } while ((gimmick.x === food.x && gimmick.y === food.y) || 
+                     isPositionOnSnake(gimmick) && attempts < 50);
+            
+            gimmickActive = true;
+            gimmickTimer = 0;
+            calculateShortestPath();
+        }
+        
+        function isPositionOnSnake(pos) {
+            return snake.some(segment => segment.x === pos.x && segment.y === pos.y);
+        }
+        
+        function calculateShortestPath() {
+            const head = snake[0];
+            const target = gimmickActive ? gimmick : food;
+            shortestPathDistance = Math.abs(head.x - target.x) + Math.abs(head.y - target.y);
+            actualPathDistance = 0;
+        }
+
+        function drawGame() {
+            clearCanvas();
+            drawGrid();
+            drawSnake();
+            drawFood();
+            if (gimmickActive) {
+                drawGimmick();
+            }
+            moveSnake();
+            checkCollision();
+            updateGimmickTimer();
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = '#0f3460';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#1a4480';
+            ctx.lineWidth = 0.5;
+            
+            for (let i = 0; i <= tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+        }
+
+        function drawSnake() {
+            snake.forEach((segment, index) => {
+                const x = segment.x * gridSize;
+                const y = segment.y * gridSize;
+                
+                if (index === 0) {
+                    // Draw snake head
+                    ctx.fillStyle = '#e94560';
+                    ctx.beginPath();
+                    ctx.arc(x + gridSize/2, y + gridSize/2, gridSize/2 - 1, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Draw eyes
+                    ctx.fillStyle = 'white';
+                    const eyeOffset = gridSize/4;
+                    const eyeSize = 2;
+                    
+                    if (dx === 1) { // facing right
+                        ctx.fillRect(x + gridSize - eyeOffset - eyeSize, y + eyeOffset, eyeSize, eyeSize);
+                        ctx.fillRect(x + gridSize - eyeOffset - eyeSize, y + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                    } else if (dx === -1) { // facing left
+                        ctx.fillRect(x + eyeOffset, y + eyeOffset, eyeSize, eyeSize);
+                        ctx.fillRect(x + eyeOffset, y + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                    } else if (dy === -1) { // facing up
+                        ctx.fillRect(x + eyeOffset, y + eyeOffset, eyeSize, eyeSize);
+                        ctx.fillRect(x + gridSize - eyeOffset - eyeSize, y + eyeOffset, eyeSize, eyeSize);
+                    } else { // facing down or stationary
+                        ctx.fillRect(x + eyeOffset, y + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                        ctx.fillRect(x + gridSize - eyeOffset - eyeSize, y + gridSize - eyeOffset - eyeSize, eyeSize, eyeSize);
+                    }
+                } else {
+                    // Draw snake body
+                    ctx.fillStyle = '#d63447';
+                    ctx.fillRect(x + 1, y + 1, gridSize - 2, gridSize - 2);
+                    ctx.strokeStyle = '#e94560';
+                    ctx.strokeRect(x + 1, y + 1, gridSize - 2, gridSize - 2);
+                }
+            });
+        }
+
+        function drawFood() {
+            const x = food.x * gridSize + gridSize/2;
+            const y = food.y * gridSize + gridSize/2;
+            
+            // Draw apple shape
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            
+            // Apple body (heart-like shape)
+            ctx.arc(x - gridSize/6, y, gridSize/3, 0, Math.PI * 2);
+            ctx.arc(x + gridSize/6, y, gridSize/3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Apple bottom
+            ctx.beginPath();
+            ctx.moveTo(x - gridSize/3, y + gridSize/6);
+            ctx.quadraticCurveTo(x, y + gridSize/2, x + gridSize/3, y + gridSize/6);
+            ctx.fill();
+            
+            // Stem
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y - gridSize/4);
+            ctx.lineTo(x, y - gridSize/2.5);
+            ctx.stroke();
+            
+            // Leaf
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.ellipse(x + gridSize/6, y - gridSize/3, gridSize/8, gridSize/12, Math.PI/4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawGimmick() {
+            const x = gimmick.x * gridSize + gridSize/2;
+            const y = gimmick.y * gridSize + gridSize/2;
+            
+            // Pulsing effect
+            const pulseScale = 1 + Math.sin(Date.now() * 0.01) * 0.2;
+            
+            // Draw golden star
+            ctx.fillStyle = '#ffd700';
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 2;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(pulseScale, pulseScale);
+            
+            // Draw 5-pointed star
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 4 * Math.PI) / 5;
+                const radius = i % 2 === 0 ? gridSize/3 : gridSize/6;
+                const px = Math.cos(angle) * radius;
+                const py = Math.sin(angle) * radius;
+                
+                if (i === 0) {
+                    ctx.moveTo(px, py);
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Add sparkle effect
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-1, -1, 2, 2);
+            
+            ctx.restore();
+        }
+
+        function moveSnake() {
+            if (dx === 0 && dy === 0) return;
+
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            actualPathDistance++;
+
+            // Check gimmick collision
+            if (gimmickActive && head.x === gimmick.x && head.y === gimmick.y) {
+                const pathEfficiency = shortestPathDistance / actualPathDistance;
+                if (pathEfficiency >= 0.85) { // 15% tolerance
+                    score += 20; // Double the normal food score
+                    scoreElement.textContent = score;
+                    
+                    // Reduce snake length by 50% (but keep at least 1 segment)
+                    const newLength = Math.max(1, Math.floor(snake.length / 2));
+                    if (newLength < snake.length) {
+                        snake.splice(newLength);
+                    }
+                }
+                gimmickActive = false;
+                gimmick = null;
+                gimmickTimer = 0;
+                calculateShortestPath();
+            }
+            // Check food collision
+            else if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreElement.textContent = score;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(head);
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver();
+                return;
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            stopGameLoop();
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+                highScoreElement.textContent = highScore;
+            }
+            gameOverElement.style.display = 'block';
+        }
+
+        function restartGame() {
+            snake = [{x: 10, y: 10}];
+            dx = 0;
+            dy = 0;
+            score = 0;
+            scoreElement.textContent = score;
+            gameRunning = true;
+            gameOverElement.style.display = 'none';
+            gimmick = null;
+            gimmickActive = false;
+            gimmickTimer = 0;
+            generateFood();
+            startGameLoop();
+            canvas.focus();
+        }
+        
+        function startGameLoop() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            gameInterval = setInterval(drawGame, speedSettings[currentSpeed]);
+        }
+        
+        function stopGameLoop() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+
+            const newDx = dx;
+            const newDy = dy;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (dy !== 1) {
+                        const nextHead = {x: snake[0].x, y: snake[0].y - 1};
+                        if (!wouldCollideWithSelf(nextHead)) {
+                            dx = 0;
+                            dy = -1;
+                        }
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (dy !== -1) {
+                        const nextHead = {x: snake[0].x, y: snake[0].y + 1};
+                        if (!wouldCollideWithSelf(nextHead)) {
+                            dx = 0;
+                            dy = 1;
+                        }
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (dx !== 1) {
+                        const nextHead = {x: snake[0].x - 1, y: snake[0].y};
+                        if (!wouldCollideWithSelf(nextHead)) {
+                            dx = -1;
+                            dy = 0;
+                        }
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (dx !== -1) {
+                        const nextHead = {x: snake[0].x + 1, y: snake[0].y};
+                        if (!wouldCollideWithSelf(nextHead)) {
+                            dx = 1;
+                            dy = 0;
+                        }
+                    }
+                    break;
+            }
+        });
+
+        function wouldCollideWithSelf(head) {
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        speedSelector.addEventListener('change', (e) => {
+            currentSpeed = e.target.value;
+            if (gameRunning) {
+                startGameLoop();
+            }
+            canvas.focus();
+        });
+        
+        function updateGimmickTimer() {
+            if (!gimmickActive) {
+                gimmickTimer++;
+                if (gimmickTimer >= gimmickCooldown) {
+                    generateGimmick();
+                }
+            } else {
+                gimmickTimer++;
+                if (gimmickTimer >= gimmickDuration) {
+                    gimmickActive = false;
+                    gimmick = null;
+                    gimmickTimer = 0;
+                }
+            }
+        }
+        
+        canvas.setAttribute('tabindex', '0');
+        canvas.focus();
+        
+        highScoreElement.textContent = highScore;
+        generateFood();
+        startGameLoop();
+    </script>
+</body>
+</html>
