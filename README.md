@@ -2,9 +2,13 @@
 
 A modern take on the classic Snake game with enhanced features, built as a single HTML file with embedded JavaScript and sound effects.
 
+## 🎮 [Play Now!](https://rpietzsch.github.io/snake)
+
+Click the link above to play the game instantly in your browser!
+
 ## How to Play
 
-Open `index.html` in any modern web browser to start playing immediately.
+Visit [https://rpietzsch.github.io/snake](https://rpietzsch.github.io/snake) or open `index.html` locally in any modern web browser.
 
 ## Game Rules
 
