@@ -196,10 +196,34 @@
             outline: none;
             border-color: #d63447;
         }
+        .sound-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 30px;
+            height: 30px;
+            background: #e94560;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            transition: background 0.3s;
+            z-index: 10;
+        }
+        .sound-toggle:hover {
+            background: #d63447;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
+        <div class="sound-toggle" onclick="toggleSound()" title="Toggle Sound">
+            <span id="soundIcon">♪</span>
+        </div>
         <div class="help-icon" onclick="showHelp()" title="Help & Controls">?</div>
         <div class="score">Score: <span id="score">0</span> | High Score: <span id="highScore">0</span></div>
         <div class="speed-selector">
@@ -254,16 +278,40 @@
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score');
-        const highScoreElement = document.getElementById('highScore');
-        const gameOverElement = document.getElementById('gameOver');
-        const speedSelector = document.getElementById('speedLevel');
-        const pauseOverlay = document.getElementById('pauseOverlay');
-
-        const gridSize = 20;
-        const tileCount = canvas.width / gridSize;
+        // Declare variables in outer scope
+        let canvas, ctx, scoreElement, highScoreElement, gameOverElement, speedSelector, pauseOverlay;
+        let gridSize = 20;
+        let tileCount = 20; // Default value
+        
+        // Initialize DOM elements after page loads
+        function initializeDOMElements() {
+            try {
+                canvas = document.getElementById('gameCanvas');
+                if (!canvas) {
+                    throw new Error('Canvas element not found');
+                }
+                ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    throw new Error('Could not get canvas context');
+                }
+                scoreElement = document.getElementById('score');
+                highScoreElement = document.getElementById('highScore');
+                gameOverElement = document.getElementById('gameOver');
+                speedSelector = document.getElementById('speedLevel');
+                pauseOverlay = document.getElementById('pauseOverlay');
+                
+                // Now we can safely calculate tileCount
+                tileCount = canvas.width / gridSize;
+                
+                // Log successful initialization
+                console.log('Game elements initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('Error initializing game:', error);
+                alert('Error initializing game: ' + error.message);
+                return false;
+            }
+        }
 
         let snake = [
             {x: 10, y: 10}
@@ -288,6 +336,33 @@
         let touchStartY = 0;
         let touchEndX = 0;
         let touchEndY = 0;
+        let soundsEnabled = true;
+        
+        // Sound system with improved collection sounds
+        const sounds = {
+            // Pleasant coin/pickup sound - rising pitch
+            eat: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVYGAACBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAP7+/f38+/v6+vn5+Pj39/b29fX09PPz8vLx8fDw7+/u7u3t7Ozr6+rq6eno6Ofn5ubmzczMzMzLysrJycjIx8fGxsXFxMTDw8LCwcHAwL+/vr69vby8u7u6uro2Nja5ubm4uLe3tra1tbS0s7OysrGxsLCvr66ura2srKurqqmpqKinp6ampqWko6OioqGhoKCfn56enZ2cnJubmpqZmZiYl5eWlpWVlJSTk5KSkZGQkI+Pjo6Ojo2NjIyLi4qKiYmIiIeHhoaFhYSEg4ODgoGBgYCAgH9/f39+fn19fHx7e3p6eXl4eHd3dnZ1dXR0c3NycnFxcHBvb25ubW1sbGtramppaWhoZ2dmZmVlZGRjY2JiYmFhYGBfX15eXV1cXFtbWlpZWVhYV1dWVlVVVFRTU1JSUVFRUFBPT05OTU1MTEtLSkpJSUhIR0dGRkVFRERDQ0JCQUFAQEBAf39/fn59fXx8e3t6enl5eHh3d3Z2dXV0dHNzcnJxcXBwb29ubm1tbGxra2pqaWloaGdnZmZlZWVkY2NiYmFhYGBfX15eXV1cXFtbWlpZWVhYV1dWVlVVVFRTU1JSUVFQUFFRU1NVV1laXF5hY2ZpbG9ydXh7foGEh4qNkJOWmZyfoqWlpKSkpqmqrKytrq6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAP7+/f38+/v6+vn5+Pj39/b29fX09PPz8vLx8fDw7+/u7u3t7Ozr6+rq6eno6Ofn5ubmzczMzMzLysrJycjIx8fGxsXFxMTDw8LCwcHAwL+/vr69vby8u7u6uro2Nja5ubm4uLe3tra1tbS0s7OysrGxsLCvr66ura2srKurqqmpqKinp6ampqWko6OioqGhoKCfn56enZ2cnJubmpqZmZiYl5eWlpWVlJSTk5KSkZGQkI+Pjo6Ojo2NjIyLi4qKiYmIiIeHhoaFhYWEg4OCgoGBgICAgH9/fn59fXx8e3t6enl5eHh3d3Z2dXV0dHNzcnJxcXBwb29ubm1tbGxra2pqaWloaGdnZmZlZWRkY2NiYmFhYGBfX15eXV1cXFtbWlpZWVhYV1dWVlVVVFRTU1JSUVFRUFBPT05OTU1MTEtLSkpJSUhIR0dGRkVFRERDQ0JCQUFAQEBAAAA='),
+            // Magical chime sound - multiple harmonics
+            star: new Audio('data:audio/wav;base64,UklGRo4IAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YWoIAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGDhYeJi42PkZOVl5mbnZ+ho6Wnqautr7Gztba4ury+wMHDxcfIyszNz9HS1NXX2drb3d7f4eLj5OXn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/AAD+/Pr49vTy8O7s6ujm5OLg3tza2NbU0s7MysaEgoB+fHp4dnRycG5samhmZGJgXlxaWFZUUlBOTEpIRkRCQD48Ojg2NDIwLiwqKCYkIiAeHBoYFhQSEA4MCggGBAIAAQMFBwkLDQ8RExUXGRsdHyEjJScpKy0vMTM1Nzk7PT9BQ0VHSUtNT1FTVVdZW11fYWNlZ2lrbW9xc3V3eXt9f4GDhYeJi42PkZOVl5mbnZ+ho6Wnqautr7Gztba4ury+wMLExsjKzM7Q0tTW2Nrc3uDi5Obo6uzu8PL09vj6/P4AAf7+/Pz6+vj49vbz8/Hx7+/t7ero6Obm5OTi4uDg3t7c3Nra2NjW1tTU0tLQ0M7OzMzKysXFwsK/v7y8ubm2trOzr6+srKWlnZ2VlY2NhYV9dXVtbWVlXV1VVVNTU1NUVldaXWFlam90e4GIj5een6qzv8nT3ef/Ff80TGaAmsX/FQAqQFhyj63N7w0PMT9PZHuUr8zm/BQnO01hd5CqxtP/FR0rO0xheo6nv9TpABQjNUdce5CqxtX/DiA0S2R9ma7K4/oWKT5SZ3+Yssr/DR8yRlt0j6XA1+//FCA2Tmt6lan/CRkvR2N5lan/AhEdMUhle43/Ah0vRmV3kan/BhojNE1yjqn/AhktQmV1jZ3xBRkuSWZ+lbP/GStBXHiPqcP/HzRQaX+dvcn/HzhSd5Cqy+f/HT9dd5y2+v82Un+cuuUAYZG92/8NXYq94wNfjrzkC2CV1PEmdr/kF37F3hmDy/Eahsn/JInF/y+NyAEzksUBNpnKBjeg0BZAgdHcJFRHkthAYlKV0kxqaZ3be3uArcaFkJy6y5ajtcbDtLrAx8a6v8PKyMHBxcjJy8vKyMjIycvMzMzMzMvLy8vMzM3Nzc3Nzc3Nzc3Nzc3NzczMzMzMzMzMzMzLy8vLy8vLy8vLy8rKysrKysrKysrJycnJycnJycnJyMjIyMjIyMjIx8fHx8fHx8fHx8bGxsbGxsbGxsbFxcXFxcXFxcXFxMTExMTExMTExMPDw8PDw8PDw8PCwsLCwsLCwsLCwcHBwcHBwcHBwcDBwMDAwMDAwMC/v7+/v7+/v7+/vr6+vr6+vr6+vr29vb29vb29vb28vLy8vLy8vLy8u7u7u7u7u7u7u7q6urq6urq6urq5ubm5ubm5ubm5ubm4uLi4uLi4uLi4uLe3t7e3t7e3t7e3t7a2tra2tra2tra2tbW1tbW1tbW1tbW0tLS0tLS0tLS0tLS0s7Ozs7Ozs7Ozs7Ozs7KysrKysrKysrKysrGxsbGxsbGxsbGxsbGwsLCwsLCwsLCwsLCwr6+vr6+vr6+vr6+vr66urq6urq6urq6urq6tra2tra2tra2tra2trKysrKysrKysrKysrKysrKysqqqqqqqqqqqqqqqqqqqqampqampqampqampqamppaWlpaWlpaWlpaWlpaWlpaWlpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoJ+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn56enp6enp6enp6enp6enp6enp6enp6enp6enp6enp2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJybnJubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubmpqampqampqampqampqampqampqampqampqampqampmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKSkpKRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCPj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIuLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKiomJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgIAA'),
+            gameOver: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVYGAACBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHR0tPU1dXW19jY2drb29zd3d7e397d3NrZ19bU0tDOzMrIxsTC39zZ1tPQzcrHxMG+u7i1sq+sqqenpKOioJ+fnp2dnJycnJubm5ubm5qamZmZmZiYmJiXl5aWlpaVlZWVlJSUlJOTk5KSkZGRkZCQkI+Pj4+OjY2NjIyLi4uLioqJiImIh4eHhoaGhYWEhISEg4KCgoGBgYCAgH9/f359fX18e3t6eXl4eHd3d3Z1dXRzc3NycnFxcG9vbm5tbWxrbGppaWloZ2ZmZmVkZGNiYmFhYGBfX15dXVxcW1tbWllZWFhYV1dWVlVVVFRUU1NSUlJRUVBQUE9PTk5OTU1NTExMTEtLSktKSkpJSklKSUpKSktLTE1OTk9QUVJTVFVWWFlaXF5gYmRlZ2lrbnBzdnl7foGEh4qNkJOVmJubnZ+hoaKkpKSlpqamp6enqKioqaqqq6yssLCxsrO0tba3uLm6u7y9vr/AwcLCw8XGxsfJycrLzM3Oz9DR0tPU1dbX2Nna29ze3+Dh4+Pl5ufo6uvu8PL09vn7/gADBgkMDxIVGBseISQmKCsuMTU5PD9DRUzjtu9RVFdZXF1fYWJkZmdoaWprbG1ub3Bxc3N0dXZ3d3h5eXp7e3t8fH1+fn5/f4CAgYGCg4SFh4iKi4yNjpCRkpOUlZWWl5iYmZmampqbm5ycnJydnZ2enp+fn5+goKCgoaGhoqKio6OjpKSkpaWlpqamp6enp6ioqKmpqaqqqqqrq6ysrK2tra6urq+vr7CwsLGxsbGysrKzs7S0tLW1tba2tre3t7i4uLm5uru7vL29vr+/wMHBwsLDxMXFxsfHyMnJysvLzM3Nzs7P0NDR0tLT09TU1dXV1tbW1tfX2NjY2NnZ2dnZ2tra2tra29vb29vb3Nzc3Nzc3d3d3d3d3t7e3t7f39/f39/f39/f39/f39/f39/f39/e3t7d3Nzc29vb2trZ2djY2NfX1tXV1NTU09PS0tHR0NDPz87OzczMy8vKysnJyMjHxsXFxMPDwsLBwcDAwL++vr28vLu7urq5ubi4t7e2trW1tLSzs7OysrGxsbCwr6+vr66urq2trKysrKurq6qqqqmqqKinp6enpaWlpKSkpKKioqGhoaGgoKCfn5+fnp6enZ2dnJycnJubm5qamZmZmJiYl5eXlpWVlZWUlJSTk5OTkpKSkZGRkJCQkI+Pj46Ojo6NjY2NjIyMjYyMjIyLi4uLioqKiomJiYmIiIiIh4eHh4eHh4aGhoaGhoaFhYWFhYWFhISEhISEg4ODg4ODg4KDgoKCgoKCgoGBgYGBgYCBgICAgICAgICAgH9/f39/f39/f39/f39/f39/f39/f39/f39+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5/f39/f39/f39/f39/f39/f39/f39/f4CAgICAgICAgICAgICAgICAgICBgYGBgYGBgYGBgoKCgoKCgoKDg4ODg4ODg4SFhISEhIWFhYWFhYaGhoaGhoeHh4eHh4eIiIiIiIiJiYmJiYmJioqKioqKi4uLi4uLjIyMjIyMjY2NjY2Njo6Ojo6Oj4+Pj4+PkJCQkJCQkZGRkZGRkpKSk5OTk5SUlJSUlJWVlZWVlpaWlpeXl5eXmJiYmJiZmZmampqam5ubm5ycnJydnZ2dnp6enp+fn5+goKCgoaGhoqKio6OjpKSkpaWlpqamp6enqKioqampqqqqq6urrKysra2trq6ur6+vsLCwsbGxsrKys7OztLS0tbW1tra2t7e3uLi4ubm5urq6u7u7vLy8vb29vr6+v7+/wMDAwcHBwsLCw8PDxMTExcXFxsbGx8fHyMjIycnJysrKy8vLzMzMzc3Nzs7Oz8/P0NDQ0dHR0tLS09PT1NTU1dXV1dXV1tbW1tbW1tbW19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX1tbW1tbW1tbW1dXV1dXV1dXV1NTU1NTU1NPT09PT09LS0tLS0tHR0dHR0dDQ0NDQ0M/Pz8/PzsAA'),
+            move: new Audio('data:audio/wav;base64,UklGRl4BAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YToBAACAgYGAgH9/gICAf4B/gH+Bf4B/gYB/gH+AgH+Bf4GAf3+AgICAgH+BgH9/f4CAgICAgX+AgICAgH+Af4CAgX+AgICAgIGBgn+AgICAgH+AgH+AgH+Af4CAf3+AgYB/gH+Bf4F/gX+Af4GAf4B/gICAgIB/gYB/f4CAgICBgH+Af3+BgH+Af4CAf3+AgH+AgYGAgICAgX+Af4B/gH+AgIB/gIGAgYGBgn+Af3+Af39/f4B/gH+AgYF/gH9/f3+AgH+Bf4CAgIGAgICAgYGAgH+AgH+AgH+AgH+AgIGAgH+AgICAgH+Af4GBgYF/gH+AgICAgICAf4B/gH+Af4B/gH+AgICAgIGAgX+BgIB/gX+AgH+AgICAgICAf4CAgA==')
+        };
+        
+        // Initialize sounds
+        Object.values(sounds).forEach(sound => {
+            sound.volume = 0.5;
+        });
+        
+        function playSound(soundName) {
+            if (!soundsEnabled) return;
+            const sound = sounds[soundName];
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => {
+                    console.log(`Failed to play ${soundName} sound:`, e);
+                });
+            }
+        }
         
         const speedSettings = {
             simple: 300,
@@ -332,6 +407,10 @@
 
         function drawGame() {
             if (gamePaused) return;
+            if (!ctx || !canvas) {
+                console.error('Canvas or context not initialized');
+                return;
+            }
             
             clearCanvas();
             drawGrid();
@@ -511,6 +590,7 @@
             if (gimmickActive && head.x === gimmick.x && head.y === gimmick.y) {
                 score += 20; // Double the normal food score
                 scoreElement.textContent = score;
+                playSound('star');
                 
                 // Reduce snake length by 50% BEFORE adding new head
                 const newLength = Math.max(1, Math.floor(snake.length / 2));
@@ -529,6 +609,7 @@
             else if (head.x === food.x && head.y === food.y) {
                 score += 10;
                 scoreElement.textContent = score;
+                playSound('eat');
                 generateFood();
                 ate = true;
             }
@@ -548,6 +629,12 @@
         function gameOver() {
             gameRunning = false;
             stopGameLoop();
+            
+            // Play game over sound with a slight delay
+            setTimeout(() => {
+                playSound('gameOver');
+            }, 100);
+            
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('snakeHighScore', highScore);
@@ -617,6 +704,7 @@
 
             const newDx = dx;
             const newDy = dy;
+            let moved = false;
 
             switch(e.key) {
                 case 'ArrowUp':
@@ -625,6 +713,7 @@
                     if (dy !== 1) {
                         dx = 0;
                         dy = -1;
+                        moved = true;
                     }
                     break;
                 case 'ArrowDown':
@@ -633,6 +722,7 @@
                     if (dy !== -1) {
                         dx = 0;
                         dy = 1;
+                        moved = true;
                     }
                     break;
                 case 'ArrowLeft':
@@ -641,6 +731,7 @@
                     if (dx !== 1) {
                         dx = -1;
                         dy = 0;
+                        moved = true;
                     }
                     break;
                 case 'ArrowRight':
@@ -649,8 +740,13 @@
                     if (dx !== -1) {
                         dx = 1;
                         dy = 0;
+                        moved = true;
                     }
                     break;
+            }
+            
+            if (moved && (dx !== 0 || dy !== 0)) {
+                playSound('move');
             }
         });
 
@@ -663,13 +759,6 @@
             return false;
         }
 
-        speedSelector.addEventListener('change', (e) => {
-            currentSpeed = e.target.value;
-            if (gameRunning) {
-                startGameLoop();
-            }
-            canvas.focus();
-        });
         
         function updateGimmickTimer() {
             if (gamePaused) return;
@@ -689,10 +778,7 @@
             }
         }
         
-        // Touch event handlers
-        canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
-        canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
-        canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
+        // Touch event handlers will be added after canvas is initialized
         
         function handleTouchStart(e) {
             e.preventDefault();
@@ -723,34 +809,42 @@
             
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
                 // Horizontal swipe
+                let moved = false;
                 if (deltaX > 0) {
                     // Swipe right
                     if (dx !== -1) {
                         dx = 1;
                         dy = 0;
+                        moved = true;
                     }
                 } else {
                     // Swipe left
                     if (dx !== 1) {
                         dx = -1;
                         dy = 0;
+                        moved = true;
                     }
                 }
+                if (moved) playSound('move');
             } else {
                 // Vertical swipe
+                let moved = false;
                 if (deltaY > 0) {
                     // Swipe down
                     if (dy !== -1) {
                         dx = 0;
                         dy = 1;
+                        moved = true;
                     }
                 } else {
                     // Swipe up
                     if (dy !== 1) {
                         dx = 0;
                         dy = -1;
+                        moved = true;
                     }
                 }
+                if (moved) playSound('move');
             }
         }
         
@@ -762,12 +856,80 @@
             document.getElementById('helpModal').style.display = 'none';
         }
         
-        canvas.setAttribute('tabindex', '0');
-        canvas.focus();
+        function toggleSound() {
+            soundsEnabled = !soundsEnabled;
+            const soundIcon = document.getElementById('soundIcon');
+            soundIcon.textContent = soundsEnabled ? '♪' : '∅';
+        }
         
-        highScoreElement.textContent = highScore;
-        generateFood();
-        startGameLoop();
+        // Initialize the game when DOM is ready
+        function initGame() {
+            // First initialize DOM elements
+            if (!initializeDOMElements()) {
+                return;
+            }
+            
+            if (!canvas || !ctx) {
+                console.error('Canvas or context not available for game initialization');
+                return;
+            }
+            
+            canvas.setAttribute('tabindex', '0');
+            canvas.focus();
+            
+            if (highScoreElement) {
+                highScoreElement.textContent = highScore;
+            }
+            
+            // Add event listeners
+            if (speedSelector) {
+                speedSelector.addEventListener('change', (e) => {
+                    currentSpeed = e.target.value;
+                    if (gameRunning) {
+                        startGameLoop();
+                    }
+                    canvas.focus();
+                });
+            }
+            
+            // Add touch event handlers
+            if (canvas) {
+                canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
+                canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
+                canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
+            }
+            
+            generateFood();
+            startGameLoop();
+        }
+        
+        // Check if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initGame);
+        } else {
+            // DOM is already loaded
+            initGame();
+        }
+        
+        // Enable audio on first user interaction
+        let audioEnabled = false;
+        function enableAudio() {
+            if (audioEnabled) return;
+            audioEnabled = true;
+            // Try to play a silent sound to enable audio context
+            Object.values(sounds).forEach(sound => {
+                sound.volume = 0;
+                sound.play().then(() => {
+                    sound.pause();
+                    sound.currentTime = 0;
+                    sound.volume = 0.5;
+                }).catch(() => {});
+            });
+        }
+        
+        document.addEventListener('click', enableAudio, { once: true });
+        document.addEventListener('keydown', enableAudio, { once: true });
+        document.addEventListener('touchstart', enableAudio, { once: true });
     </script>
 </body>
 </html>
