@@ -217,6 +217,26 @@
         .sound-toggle:hover {
             background: #d63447;
         }
+        .ad-container {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 400px;
+            min-height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(15, 52, 96, 0.3);
+            border-radius: 5px;
+            padding: 10px;
+        }
+        @media (max-width: 600px) {
+            .ad-container {
+                margin-top: 15px;
+                max-width: 90vw;
+                min-height: 80px;
+                padding: 5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -246,6 +266,12 @@
             Game Over!
             <br>
             <button class="restart-btn" onclick="restartGame()">Restart</button>
+        </div>
+        
+        <!-- Ad Banner -->
+        <div class="ad-container">
+           <script async="async" data-cfasync="false" src="//pl27183834.profitableratecpm.com/c0c090527d197812c7449e2210b5a909/invoke.js"></script>
+            <div id="container-c0c090527d197812c7449e2210b5a909"></div>
         </div>
     </div>
     
