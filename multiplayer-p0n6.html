@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer P0n6</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230f3460'/><rect x='4' y='14' width='4' height='4' fill='%23e94560'/><rect x='24' y='14' width='4' height='4' fill='%23e94560'/><circle cx='16' cy='16' r='2' fill='%23ffffff'/><circle cx='16' cy='8' r='1' fill='%2300ff00'/><circle cx='16' cy='24' r='1' fill='%2300ff00'/></svg>">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: Arial, sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+        .game-container {
+            text-align: center;
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            max-width: 900px;
+            width: 90%;
+        }
+        .game-header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .back-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .back-btn:hover {
+            background: #d63447;
+        }
+        .sound-toggle {
+            width: 30px;
+            height: 30px;
+            background: #e94560;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .sound-toggle:hover {
+            background: #d63447;
+        }
+        .help-icon {
+            width: 30px;
+            height: 30px;
+            background: #e94560;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .help-icon:hover {
+            background: #d63447;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #e94560;
+            margin: 0 0 10px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .game-subtitle {
+            color: #95a5a6;
+            margin-bottom: 20px;
+        }
+        .connection-status {
+            color: #e94560;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            min-height: 25px;
+        }
+        .connection-status.connected {
+            color: #27ae60;
+        }
+        .connection-status.connecting {
+            color: #f39c12;
+        }
+        .connection-status.disconnected {
+            color: #e74c3c;
+        }
+        .menu-screen {
+            display: block;
+        }
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .menu-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+        .menu-btn:hover {
+            background: #d63447;
+        }
+        .menu-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .room-info {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        .room-code {
+            font-size: 2em;
+            color: #e94560;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .share-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .share-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .share-btn:hover {
+            background: #219a52;
+        }
+        .share-btn.copied {
+            background: #2ecc71;
+        }
+        .join-room {
+            display: none;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .room-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e94560;
+            border-radius: 5px;
+            background: #0f3460;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .room-input:focus {
+            outline: none;
+            border-color: #d63447;
+        }
+        .score-display {
+            color: #ecf0f1;
+            font-size: 2em;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .player-names {
+            display: flex;
+            justify-content: space-between;
+            color: #95a5a6;
+            margin-bottom: 10px;
+        }
+        .player-name {
+            font-size: 1.2em;
+        }
+        .player-name.you {
+            color: #27ae60;
+        }
+        .player-name.opponent {
+            color: #e94560;
+        }
+        #gameCanvas {
+            border: 2px solid #e94560;
+            border-radius: 5px;
+            background: #000;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        .game-screen {
+            display: none;
+        }
+        .mobile-controls {
+            display: none;
+            margin-top: 20px;
+        }
+        .mobile-paddle {
+            width: 100%;
+            height: 60px;
+            background: #e94560;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .mobile-paddle:active {
+            background: #d63447;
+        }
+        .waiting-message {
+            color: #f39c12;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-size: 1.1em;
+            margin: 15px 0;
+            display: none;
+        }
+        .help-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            z-index: 1000;
+        }
+        .help-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a2e;
+            color: #ecf0f1;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e94560;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+        .help-content h2 {
+            margin-top: 0;
+            color: #e94560;
+        }
+        .help-content h3 {
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        .control-item {
+            background: #0f3460;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #ecf0f1;
+        }
+        .close-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .close-btn:hover {
+            background: #d63447;
+        }
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 10px;
+            }
+            .game-title {
+                font-size: 2em;
+            }
+            .mobile-controls {
+                display: block;
+            }
+            .score-display {
+                font-size: 1.5em;
+            }
+            .share-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header-controls">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">← Back</a>
+                <div class="sound-toggle" id="soundToggle">♪</div>
+            </div>
+            <div class="help-icon" id="helpIcon">?</div>
+        </div>
+        
+        <h1 class="game-title">Multiplayer P0n6</h1>
+        <p class="game-subtitle">Play against friends online!</p>
+        
+        <div class="connection-status" id="connectionStatus">Ready to connect</div>
+        <div class="error-message" id="errorMessage"></div>
+        
+        <!-- Main Menu -->
+        <div class="menu-screen" id="menuScreen">
+            <div class="menu-buttons">
+                <button class="menu-btn" id="createRoomBtn">Create Room</button>
+                <button class="menu-btn" id="joinRoomBtn">Join Room</button>
+            </div>
+            
+            <!-- Room Creation -->
+            <div class="room-info" id="roomInfo">
+                <h3>Room Created!</h3>
+                <div class="room-code" id="roomCode">ABCD</div>
+                <p>Share this link with your friend:</p>
+                <div class="share-controls">
+                    <button class="share-btn" id="copyLinkBtn">📋 Copy Link</button>
+                    <button class="share-btn" id="shareBtn" style="display: none;">📱 Share</button>
+                </div>
+                <div class="waiting-message">Waiting for opponent...</div>
+            </div>
+            
+            <!-- Room Joining -->
+            <div class="join-room" id="joinRoom">
+                <input type="text" class="room-input" id="roomInput" placeholder="Enter room code" maxlength="6">
+                <button class="menu-btn" id="joinBtn">Join Game</button>
+                <button class="menu-btn" id="backToMenuBtn">← Back</button>
+            </div>
+        </div>
+        
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="player-names">
+                <div class="player-name you" id="player1Name">You</div>
+                <div class="player-name opponent" id="player2Name">Opponent</div>
+            </div>
+            <div class="score-display" id="scoreDisplay">0 - 0</div>
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div class="mobile-controls">
+                <div class="mobile-paddle" id="mobilePaddle">🏓 Touch to move paddle</div>
+            </div>
+        </div>
+        
+        <!-- Help Modal -->
+        <div class="help-modal" id="helpModal">
+            <div class="help-content">
+                <h2>How to Play</h2>
+                <h3>Multiplayer Setup</h3>
+                <p>Player 1 creates a room and shares the link with Player 2</p>
+                <h3>Controls</h3>
+                <div class="controls-grid">
+                    <div class="control-item">Mouse/Touch</div>
+                    <div class="control-item">Move Paddle</div>
+                    <div class="control-item">Up/Down Arrow</div>
+                    <div class="control-item">Move Paddle</div>
+                    <div class="control-item">W/S Keys</div>
+                    <div class="control-item">Move Paddle</div>
+                    <div class="control-item">P Key</div>
+                    <div class="control-item">Pause/Resume</div>
+                </div>
+                <h3>Objective</h3>
+                <p>Hit the ball past your opponent to score points!</p>
+                <button class="close-btn" id="closeHelp">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        class MultiplayerPong {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.gameState = 'menu'; // menu, waiting, playing, gameOver
+                this.isHost = false;
+                this.playerId = Math.random().toString(36).substr(2, 9);
+                this.roomCode = '';
+                this.soundEnabled = true;
+                
+                // Your web app's Firebase configuration
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCT2GiRRGQk3NIbuTdkqnn7PvslPglcHT0",
+                    authDomain: "mini-games-nerok-de.firebaseapp.com",
+                    databaseURL: "https://mini-games-nerok-de-default-rtdb.europe-west1.firebasedatabase.app",
+                    projectId: "mini-games-nerok-de",
+                    storageBucket: "mini-games-nerok-de.firebasestorage.app",
+                    messagingSenderId: "524019599735",
+                    appId: "1:524019599735:web:a14178c4a12ceb0a227972"
+                };
+                
+                // Initialize Firebase (with error handling for demo config)
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    this.database = firebase.database();
+                    
+                    // Add connection monitoring
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.updateStatus('Connected to Firebase', 'connected');
+                            this.connected = true;
+                        } else {
+                            this.updateStatus('Disconnected from Firebase', 'disconnected');
+                            this.connected = false;
+                        }
+                    });
+                } catch (error) {
+                    console.warn('Firebase initialization failed - using local fallback');
+                    this.database = null;
+                    this.showError('Firebase connection failed. Please check your internet connection.');
+                }
+                
+                // Game objects
+                this.ball = {
+                    x: 400,
+                    y: 200,
+                    vx: 5,
+                    vy: 3,
+                    radius: 8,
+                    speed: 5
+                };
+                
+                this.paddle1 = {
+                    x: 20,
+                    y: 150,
+                    width: 15,
+                    height: 100,
+                    speed: 6
+                };
+                
+                this.paddle2 = {
+                    x: 765,
+                    y: 150,
+                    width: 15,
+                    height: 100,
+                    speed: 6
+                };
+                
+                this.score = [0, 0];
+                this.keys = {};
+                this.lastUpdate = Date.now();
+                this.peerConnection = null;
+                this.dataChannel = null;
+                this.roomRef = null;
+                this.connected = false;
+                
+                this.setupEventListeners();
+                this.setupMobileControls();
+                this.checkDeepLink();
+            }
+            
+            setupEventListeners() {
+                document.getElementById('createRoomBtn').addEventListener('click', () => this.createRoom());
+                document.getElementById('joinRoomBtn').addEventListener('click', () => this.showJoinRoom());
+                document.getElementById('joinBtn').addEventListener('click', () => this.joinRoom());
+                document.getElementById('backToMenuBtn').addEventListener('click', () => this.showMenu());
+                document.getElementById('copyLinkBtn').addEventListener('click', () => this.copyRoomLink());
+                document.getElementById('shareBtn').addEventListener('click', () => this.shareRoom());
+                document.getElementById('soundToggle').addEventListener('click', () => this.toggleSound());
+                document.getElementById('helpIcon').addEventListener('click', () => this.showHelp());
+                document.getElementById('closeHelp').addEventListener('click', () => this.hideHelp());
+                
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key] = true;
+                    
+                    // Pause/Resume with P key
+                    if (e.key === 'p' || e.key === 'P') {
+                        this.togglePause();
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.key] = false;
+                });
+                
+                // Canvas mouse/touch controls
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+                
+                // Room input enter key
+                document.getElementById('roomInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.joinRoom();
+                    }
+                });
+            }
+            
+            setupMobileControls() {
+                const mobilePaddle = document.getElementById('mobilePaddle');
+                mobilePaddle.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleTouchMove(e);
+                });
+                mobilePaddle.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    this.handleTouchMove(e);
+                });
+            }
+            
+            checkDeepLink() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const roomCode = urlParams.get('room');
+                if (roomCode) {
+                    document.getElementById('roomInput').value = roomCode;
+                    this.showJoinRoom();
+                }
+            }
+            
+            generateRoomCode() {
+                return Math.random().toString(36).substr(2, 6).toUpperCase();
+            }
+            
+            createRoom() {
+                if (!this.database) {
+                    this.showError('Network features unavailable in demo mode');
+                    return;
+                }
+                
+                if (!this.connected) {
+                    this.showError('Please wait for Firebase connection...');
+                    return;
+                }
+                
+                // Rate limiting - only allow one room creation per minute
+                const lastRoomCreation = localStorage.getItem('lastRoomCreation');
+                if (lastRoomCreation && Date.now() - parseInt(lastRoomCreation) < 60000) {
+                    this.showError('Please wait before creating another room');
+                    return;
+                }
+                
+                this.roomCode = this.generateRoomCode();
+                this.isHost = true;
+                this.updateStatus('Creating room...', 'connecting');
+                
+                localStorage.setItem('lastRoomCreation', Date.now().toString());
+                
+                const now = Date.now();
+                
+                // Update rate limit tracker
+                this.database.ref('rate_limit/rooms/' + this.playerId).set(now);
+                
+                this.roomRef = this.database.ref('rooms/' + this.roomCode);
+                this.roomRef.set({
+                    host: this.playerId,
+                    created: now,
+                    players: {
+                        [this.playerId]: {
+                            name: 'Player 1',
+                            ready: true
+                        }
+                    }
+                }).then(() => {
+                    this.setupRoomListeners();
+                    this.showRoomInfo();
+                    this.updateStatus('Room created! Waiting for opponent...', 'connected');
+                }).catch((error) => {
+                    console.error('Error creating room:', error);
+                    this.showError('Failed to create room. Please try again.');
+                });
+            }
+            
+            showJoinRoom() {
+                document.getElementById('menuScreen').style.display = 'block';
+                document.getElementById('joinRoom').style.display = 'block';
+                document.getElementById('roomInfo').style.display = 'none';
+                document.querySelector('.menu-buttons').style.display = 'none';
+                document.getElementById('roomInput').focus();
+            }
+            
+            joinRoom() {
+                const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
+                if (!roomCode || roomCode.length !== 6) {
+                    this.showError('Please enter a valid 6-character room code');
+                    return;
+                }
+                
+                if (!this.database) {
+                    this.showError('Network features unavailable in demo mode');
+                    return;
+                }
+                
+                if (!this.connected) {
+                    this.showError('Please wait for Firebase connection...');
+                    return;
+                }
+                
+                this.roomCode = roomCode;
+                this.isHost = false;
+                this.updateStatus('Joining room...', 'connecting');
+                
+                this.roomRef = this.database.ref('rooms/' + roomCode);
+                this.roomRef.once('value', (snapshot) => {
+                    const roomData = snapshot.val();
+                    if (!roomData) {
+                        this.showError('Room not found. Please check the room code.');
+                        return;
+                    }
+                    
+                    // Add player to room
+                    this.roomRef.child('players/' + this.playerId).set({
+                        name: 'Player 2',
+                        ready: true
+                    }).then(() => {
+                        this.setupRoomListeners();
+                        this.updateStatus('Connected! Waiting for game to start...', 'connected');
+                    }).catch((error) => {
+                        console.error('Error joining room:', error);
+                        this.showError('Failed to join room. Please try again.');
+                    });
+                }).catch((error) => {
+                    console.error('Error fetching room:', error);
+                    this.showError('Connection error. Please check your internet connection.');
+                });
+            }
+            
+            setupRoomListeners() {
+                if (!this.roomRef) return;
+                
+                this.roomRef.child('players').on('value', (snapshot) => {
+                    const players = snapshot.val();
+                    console.log('Players update:', players);
+                    if (players && Object.keys(players).length === 2) {
+                        console.log('Both players connected, starting game...');
+                        console.log('My player ID:', this.playerId);
+                        console.log('Am I host?', this.isHost);
+                        this.startGame();
+                    }
+                }, (error) => {
+                    console.error('Error listening to players:', error);
+                    this.showError('Connection error. Please refresh and try again.');
+                });
+                
+                this.roomRef.child('gameState').on('value', (snapshot) => {
+                    const gameState = snapshot.val();
+                    console.log('Firebase gameState received:', gameState);
+                    if (gameState && !this.isHost) {
+                        console.log('Syncing game state for guest player');
+                        this.syncGameState(gameState);
+                    }
+                }, (error) => {
+                    console.error('Error listening to gameState:', error);
+                });
+                
+                this.roomRef.child('actions').on('child_added', (snapshot) => {
+                    const action = snapshot.val();
+                    console.log('Firebase action received:', action);
+                    if (action && action.playerId !== this.playerId) {
+                        this.handleRemoteAction(action);
+                    }
+                }, (error) => {
+                    console.error('Error listening to actions:', error);
+                });
+            }
+            
+            showRoomInfo() {
+                document.getElementById('roomCode').textContent = this.roomCode;
+                document.getElementById('roomInfo').style.display = 'block';
+                
+                // Show share button if Web Share API is supported
+                if (navigator.share) {
+                    document.getElementById('shareBtn').style.display = 'inline-block';
+                }
+            }
+            
+            copyRoomLink() {
+                const link = `${window.location.origin}${window.location.pathname}?room=${this.roomCode}`;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(link).then(() => {
+                        const btn = document.getElementById('copyLinkBtn');
+                        btn.textContent = '✓ Copied!';
+                        btn.classList.add('copied');
+                        setTimeout(() => {
+                            btn.textContent = '📋 Copy Link';
+                            btn.classList.remove('copied');
+                        }, 2000);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = link;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showError('Link copied to clipboard!');
+                }
+            }
+            
+            shareRoom() {
+                if (navigator.share) {
+                    const link = `${window.location.origin}${window.location.pathname}?room=${this.roomCode}`;
+                    navigator.share({
+                        title: 'Join my Pong game!',
+                        text: 'Play multiplayer Pong with me',
+                        url: link
+                    });
+                }
+            }
+            
+            startGame() {
+                this.gameState = 'playing';
+                document.getElementById('menuScreen').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'block';
+                
+                // Set player names based on perspective
+                if (this.isHost) {
+                    // Host controls paddle1 (left side)
+                    document.getElementById('player1Name').textContent = 'You';
+                    document.getElementById('player2Name').textContent = 'Opponent';
+                    document.getElementById('player1Name').className = 'player-name you';
+                    document.getElementById('player2Name').className = 'player-name opponent';
+                } else {
+                    // Guest controls paddle2 (right side)
+                    document.getElementById('player1Name').textContent = 'Opponent';
+                    document.getElementById('player2Name').textContent = 'You';
+                    document.getElementById('player1Name').className = 'player-name opponent';
+                    document.getElementById('player2Name').className = 'player-name you';
+                }
+                
+                // Initialize score display for both players
+                this.updateScoreDisplay();
+                
+                if (this.isHost) {
+                    this.resetBall();
+                    this.gameLoop();
+                } else {
+                    // Non-host player needs to start render loop
+                    this.renderLoop();
+                }
+                
+                this.updateStatus('Game started!', 'connected');
+            }
+            
+            resetBall() {
+                this.ball.x = 400;
+                this.ball.y = 200;
+                this.ball.vx = (Math.random() > 0.5 ? 1 : -1) * this.ball.speed;
+                this.ball.vy = (Math.random() - 0.5) * this.ball.speed;
+            }
+            
+            handleMouseMove(e) {
+                if (this.gameState !== 'playing') return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                const paddleY = Math.max(0, Math.min(this.canvas.height - this.paddle1.height, y - this.paddle1.height / 2));
+                
+                console.log(`Mouse move: y=${y}, paddleY=${paddleY}, isHost=${this.isHost}, gameState=${this.gameState}`);
+                
+                if (this.isHost) {
+                    this.paddle1.y = paddleY;
+                } else {
+                    this.paddle2.y = paddleY;
+                }
+                
+                this.sendAction('paddle', { y: paddleY });
+            }
+            
+            handleTouchMove(e) {
+                if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    const rect = this.canvas.getBoundingClientRect();
+                    const y = touch.clientY - rect.top;
+                    const paddleY = Math.max(0, Math.min(this.canvas.height - this.paddle1.height, y - this.paddle1.height / 2));
+                    
+                    if (this.isHost) {
+                        this.paddle1.y = paddleY;
+                    } else {
+                        this.paddle2.y = paddleY;
+                    }
+                    
+                    this.sendAction('paddle', { y: paddleY });
+                }
+            }
+            
+            sendAction(type, data) {
+                console.log('sendAction called:', { type, data, hasRoomRef: !!this.roomRef });
+                if (this.roomRef) {
+                    // Reduced rate limiting for smoother movement - max 30 actions per second
+                    // But allow pause actions to go through immediately
+                    const now = Date.now();
+                    if (type !== 'pause' && this.lastActionTime && now - this.lastActionTime < 33) {
+                        console.log('Rate limited, skipping action');
+                        return; // Skip if too frequent
+                    }
+                    this.lastActionTime = now;
+                    
+                    const action = {
+                        type,
+                        data,
+                        playerId: this.playerId,
+                        timestamp: now
+                    };
+                    
+                    console.log('Sending action to Firebase:', action);
+                    const actionRef = this.roomRef.child('actions').push();
+                    
+                    // Send the action with error handling
+                    actionRef.set(action).then(() => {
+                        console.log('Action sent successfully:', type);
+                    }).catch((error) => {
+                        console.error('Firebase action send failed:', error);
+                        if (type === 'pause') {
+                            this.showError('Failed to sync pause state with opponent. Please check your connection.');
+                        }
+                    });
+                    
+                    // Clean up old actions to prevent Firebase overload
+                    setTimeout(() => {
+                        actionRef.remove().catch(e => console.warn('Could not remove action:', e));
+                    }, 10000);
+                } else {
+                    console.warn('No roomRef available, cannot send action');
+                }
+            }
+            
+            handleRemoteAction(action) {
+                console.log('Received action:', action);
+                if (action.type === 'paddle') {
+                    if (this.isHost) {
+                        // Smooth interpolation for better movement
+                        this.paddle2.targetY = action.data.y;
+                        if (this.paddle2.targetY === undefined) this.paddle2.y = action.data.y;
+                        console.log('Host: Updated paddle2.y to', action.data.y);
+                    } else {
+                        // Smooth interpolation for better movement
+                        this.paddle1.targetY = action.data.y;
+                        if (this.paddle1.targetY === undefined) this.paddle1.y = action.data.y;
+                        console.log('Guest: Updated paddle1.y to', action.data.y);
+                    }
+                } else if (action.type === 'pause') {
+                    console.log('Remote pause action:', action.data.state);
+                    if (action.data.state === 'paused') {
+                        this.gameState = 'paused';
+                        this.updateStatus('Game paused by opponent (Press P to resume)', 'connecting');
+                    } else if (action.data.state === 'playing') {
+                        this.gameState = 'playing';
+                        this.updateStatus('Game resumed by opponent', 'connected');
+                        if (this.isHost) {
+                            this.gameLoop();
+                        } else {
+                            this.renderLoop();
+                        }
+                    }
+                }
+            }
+            
+            syncGameState(gameState) {
+                if (gameState.ball) {
+                    // Smooth ball interpolation for Player B
+                    this.ball.targetX = gameState.ball.x;
+                    this.ball.targetY = gameState.ball.y;
+                    this.ball.vx = gameState.ball.vx;
+                    this.ball.vy = gameState.ball.vy;
+                    
+                    // Initialize position if not set
+                    if (this.ball.x === undefined) {
+                        this.ball.x = gameState.ball.x;
+                        this.ball.y = gameState.ball.y;
+                    }
+                }
+                if (gameState.score) {
+                    this.score = gameState.score;
+                    this.updateScoreDisplay();
+                }
+                console.log('Game state synced:', gameState);
+            }
+            
+            interpolatePaddles() {
+                // Smooth interpolation for remote paddle movements
+                if (this.paddle1.targetY !== undefined) {
+                    const diff = this.paddle1.targetY - this.paddle1.y;
+                    this.paddle1.y += diff * 0.3; // Interpolation speed
+                    if (Math.abs(diff) < 1) {
+                        this.paddle1.y = this.paddle1.targetY;
+                        this.paddle1.targetY = undefined;
+                    }
+                }
+                
+                if (this.paddle2.targetY !== undefined) {
+                    const diff = this.paddle2.targetY - this.paddle2.y;
+                    this.paddle2.y += diff * 0.3; // Interpolation speed
+                    if (Math.abs(diff) < 1) {
+                        this.paddle2.y = this.paddle2.targetY;
+                        this.paddle2.targetY = undefined;
+                    }
+                }
+                
+                // Smooth ball interpolation for non-host players
+                if (!this.isHost) {
+                    if (this.ball.targetX !== undefined) {
+                        const diffX = this.ball.targetX - this.ball.x;
+                        const diffY = this.ball.targetY - this.ball.y;
+                        this.ball.x += diffX * 0.5; // Faster interpolation for ball
+                        this.ball.y += diffY * 0.5;
+                        
+                        if (Math.abs(diffX) < 1 && Math.abs(diffY) < 1) {
+                            this.ball.x = this.ball.targetX;
+                            this.ball.y = this.ball.targetY;
+                            this.ball.targetX = undefined;
+                            this.ball.targetY = undefined;
+                        }
+                    }
+                }
+            }
+            
+            updateGameState() {
+                if (this.isHost && this.roomRef) {
+                    // Throttle game state updates to every 50ms (20 fps)
+                    const now = Date.now();
+                    if (this.lastGameStateUpdate && now - this.lastGameStateUpdate < 50) {
+                        return;
+                    }
+                    this.lastGameStateUpdate = now;
+                    
+                    const gameState = {
+                        ball: this.ball,
+                        score: this.score,
+                        timestamp: now
+                    };
+                    console.log('Host: Sending game state:', gameState);
+                    this.roomRef.child('gameState').set(gameState);
+                }
+            }
+            
+            gameLoop() {
+                if (this.gameState !== 'playing') return;
+                
+                this.update();
+                this.render();
+                
+                // Host sends game state updates for synchronization
+                if (this.isHost) {
+                    this.updateGameState();
+                }
+                
+                requestAnimationFrame(() => this.gameLoop());
+            }
+            
+            renderLoop() {
+                if (this.gameState !== 'playing') return;
+                
+                // Non-host only renders, doesn't update game physics
+                this.handleKeyboardInput();
+                this.interpolatePaddles();
+                this.render();
+                
+                requestAnimationFrame(() => this.renderLoop());
+            }
+            
+            handleKeyboardInput() {
+                // Handle keyboard input for both players
+                if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
+                    if (this.isHost) {
+                        this.paddle1.y = Math.max(0, this.paddle1.y - this.paddle1.speed);
+                        this.sendAction('paddle', { y: this.paddle1.y });
+                    } else {
+                        this.paddle2.y = Math.max(0, this.paddle2.y - this.paddle2.speed);
+                        this.sendAction('paddle', { y: this.paddle2.y });
+                    }
+                }
+                if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
+                    if (this.isHost) {
+                        this.paddle1.y = Math.min(this.canvas.height - this.paddle1.height, this.paddle1.y + this.paddle1.speed);
+                        this.sendAction('paddle', { y: this.paddle1.y });
+                    } else {
+                        this.paddle2.y = Math.min(this.canvas.height - this.paddle2.height, this.paddle2.y + this.paddle2.speed);
+                        this.sendAction('paddle', { y: this.paddle2.y });
+                    }
+                }
+            }
+
+            update() {
+                // Handle keyboard input for host
+                if (this.isHost) {
+                    this.handleKeyboardInput();
+                }
+                
+                if (!this.isHost) return; // Only host updates game physics
+                
+                // Interpolate remote paddle movements
+                this.interpolatePaddles();
+                
+                // Ball physics
+                this.ball.x += this.ball.vx;
+                this.ball.y += this.ball.vy;
+                
+                // Ball collision with top/bottom walls
+                if (this.ball.y <= this.ball.radius || this.ball.y >= this.canvas.height - this.ball.radius) {
+                    this.ball.vy = -this.ball.vy;
+                    this.playSound('bounce');
+                }
+                
+                // Ball collision with paddles
+                if (this.ball.x - this.ball.radius <= this.paddle1.x + this.paddle1.width &&
+                    this.ball.y >= this.paddle1.y && this.ball.y <= this.paddle1.y + this.paddle1.height) {
+                    this.ball.vx = Math.abs(this.ball.vx);
+                    this.ball.vy += (this.ball.y - (this.paddle1.y + this.paddle1.height/2)) * 0.1;
+                    this.playSound('paddle');
+                }
+                
+                if (this.ball.x + this.ball.radius >= this.paddle2.x &&
+                    this.ball.y >= this.paddle2.y && this.ball.y <= this.paddle2.y + this.paddle2.height) {
+                    this.ball.vx = -Math.abs(this.ball.vx);
+                    this.ball.vy += (this.ball.y - (this.paddle2.y + this.paddle2.height/2)) * 0.1;
+                    this.playSound('paddle');
+                }
+                
+                // Scoring
+                if (this.ball.x < 0) {
+                    this.score[1]++;
+                    this.resetBall();
+                    this.playSound('score');
+                    this.updateScoreDisplay();
+                }
+                
+                if (this.ball.x > this.canvas.width) {
+                    this.score[0]++;
+                    this.resetBall();
+                    this.playSound('score');
+                    this.updateScoreDisplay();
+                }
+                
+                // Sync game state with opponent more frequently
+                this.updateGameState();
+            }
+            
+            render() {
+                // Clear canvas
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw center line
+                this.ctx.strokeStyle = '#333';
+                this.ctx.setLineDash([5, 15]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.canvas.width / 2, 0);
+                this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                // Draw paddles
+                this.ctx.fillStyle = this.isHost ? '#27ae60' : '#95a5a6';
+                this.ctx.fillRect(this.paddle1.x, this.paddle1.y, this.paddle1.width, this.paddle1.height);
+                
+                this.ctx.fillStyle = this.isHost ? '#95a5a6' : '#27ae60';
+                this.ctx.fillRect(this.paddle2.x, this.paddle2.y, this.paddle2.width, this.paddle2.height);
+                
+                // Draw ball
+                this.ctx.fillStyle = '#fff';
+                this.ctx.beginPath();
+                this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            
+            updateScoreDisplay() {
+                const scoreText = `${this.score[0]} - ${this.score[1]}`;
+                console.log(`Updating score display: ${scoreText}`);
+                document.getElementById('scoreDisplay').textContent = scoreText;
+            }
+            
+            playSound(type) {
+                if (!this.soundEnabled) return;
+                
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                switch (type) {
+                    case 'paddle':
+                        oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        break;
+                    case 'bounce':
+                        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        break;
+                    case 'score':
+                        oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        break;
+                }
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.3);
+            }
+            
+            togglePause() {
+                if (this.gameState === 'playing') {
+                    this.gameState = 'paused';
+                    console.log('Game paused');
+                    this.updateStatus('Game paused (Press P to resume)', 'connecting');
+                    this.sendAction('pause', { state: 'paused' });
+                } else if (this.gameState === 'paused') {
+                    this.gameState = 'playing';
+                    console.log('Game resumed');
+                    this.updateStatus('Game resumed', 'connected');
+                    this.sendAction('pause', { state: 'playing' });
+                    if (this.isHost) {
+                        this.gameLoop();
+                    } else {
+                        this.renderLoop();
+                    }
+                }
+            }
+            
+            toggleSound() {
+                this.soundEnabled = !this.soundEnabled;
+                document.getElementById('soundToggle').textContent = this.soundEnabled ? '♪' : '∅';
+            }
+            
+            showMenu() {
+                document.getElementById('menuScreen').style.display = 'block';
+                document.getElementById('joinRoom').style.display = 'none';
+                document.getElementById('roomInfo').style.display = 'none';
+                document.querySelector('.menu-buttons').style.display = 'flex';
+            }
+            
+            showHelp() {
+                document.getElementById('helpModal').style.display = 'block';
+            }
+            
+            hideHelp() {
+                document.getElementById('helpModal').style.display = 'none';
+            }
+            
+            updateStatus(message, type = '') {
+                const statusElement = document.getElementById('connectionStatus');
+                statusElement.textContent = message;
+                statusElement.className = `connection-status ${type}`;
+            }
+            
+            showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                setTimeout(() => {
+                    errorElement.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Initialize the game when the page loads
+        const game = new MultiplayerPong();
+    </script>
+</body>
+</html>
