@@ -1071,116 +1071,113 @@
             
             if (!canvas) return;
             
-            let fullscreenTouchState = {
-                active: false,
-                player: null,
-                startY: 0,
-                lastY: 0,
-                lastTime: 0
-            };
+            let fullscreenTouchActive = false;
+            let fullscreenActivePlayer = null;
+            let fullscreenLastY = 0;
             
-            // Canvas touch controls for smartphone mode
+            // Simple fullscreen canvas touch controls
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
                 const rect = canvas.getBoundingClientRect();
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
-                const canvasWidth = rect.width;
                 
-                fullscreenTouchState.active = true;
-                fullscreenTouchState.startY = y;
-                fullscreenTouchState.lastY = y;
-                fullscreenTouchState.lastTime = Date.now();
+                fullscreenTouchActive = true;
+                fullscreenLastY = y;
                 
-                // Determine which side was touched
-                if (x < canvasWidth / 2) {
-                    // Left side - Player 1
-                    fullscreenTouchState.player = 'p1';
+                // Left half = Player 1, Right half = Player 2 (PvP only)
+                if (x < rect.width / 2) {
+                    fullscreenActivePlayer = 1;
                     if (indicator) {
                         indicator.textContent = 'P1 Active';
                         indicator.classList.add('active');
                     }
+                    console.log('Fullscreen Player 1 paddle activated');
                 } else if (!player2.isAI) {
-                    // Right side - Player 2 (only in PvP mode)
-                    fullscreenTouchState.player = 'p2';
+                    fullscreenActivePlayer = 2;
                     if (indicator) {
                         indicator.textContent = 'P2 Active';
                         indicator.classList.add('active');
                     }
+                    console.log('Fullscreen Player 2 paddle activated');
+                } else {
+                    fullscreenTouchActive = false; // Don't activate if touching P2 side in AI mode
+                    console.log('Fullscreen touch on P2 side ignored (AI mode)');
                 }
-                
-                console.log('Fullscreen touch start:', fullscreenTouchState.player, y);
             });
             
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                if (!fullscreenTouchState.active) return;
+                if (!fullscreenTouchActive || !fullscreenActivePlayer) return;
                 
                 const touch = e.touches[0];
                 const rect = canvas.getBoundingClientRect();
-                const y = touch.clientY - rect.top;
+                const currentY = touch.clientY - rect.top;
                 
-                // Much simpler and more responsive movement for fullscreen
-                const deltaY = y - fullscreenTouchState.lastY;
+                // Calculate finger movement
+                const fingerDelta = currentY - fullscreenLastY;
                 
-                if (Math.abs(deltaY) > 1) {
-                    // Direct, responsive movement - higher sensitivity for fullscreen
-                    const speed = Math.abs(deltaY) * 2.5; // Increased from 0.6 to 2.5
-                    const maxSpeed = 12; // Increased from 8 to 12
-                    const finalSpeed = Math.min(speed, maxSpeed);
+                if (Math.abs(fingerDelta) > 0.5) {
+                    // Convert finger speed directly to paddle speed (slightly less sensitive for fullscreen)
+                    const paddleSpeed = fingerDelta * 1.2; // Direct 1:1.2 ratio for fullscreen
+                    const maxPaddleSpeed = 15;
                     
-                    if (fullscreenTouchState.player === 'p1') {
-                        player1.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
-                        console.log('Fullscreen P1 moving:', finalSpeed, 'deltaY:', deltaY);
-                    } else if (fullscreenTouchState.player === 'p2') {
-                        player2.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
-                        console.log('Fullscreen P2 moving:', finalSpeed, 'deltaY:', deltaY);
+                    // Clamp speed
+                    const clampedSpeed = Math.max(-maxPaddleSpeed, Math.min(maxPaddleSpeed, paddleSpeed));
+                    
+                    // Apply to correct paddle
+                    if (fullscreenActivePlayer === 1) {
+                        player1.vy = clampedSpeed;
+                    } else if (fullscreenActivePlayer === 2) {
+                        player2.vy = clampedSpeed;
                     }
+                    
+                    console.log(`Fullscreen P${fullscreenActivePlayer} speed: ${clampedSpeed.toFixed(1)} (finger: ${fingerDelta.toFixed(1)})`);
                 } else {
-                    // Stop movement if finger barely moving
-                    if (fullscreenTouchState.player === 'p1') {
+                    // Stop paddle when finger stops moving
+                    if (fullscreenActivePlayer === 1) {
                         player1.vy = 0;
-                    } else if (fullscreenTouchState.player === 'p2') {
+                    } else if (fullscreenActivePlayer === 2) {
                         player2.vy = 0;
                     }
                 }
                 
-                fullscreenTouchState.lastY = y;
-                
-                console.log('Fullscreen touch details:', {
-                    player: fullscreenTouchState.player,
-                    deltaY: deltaY,
-                    p1vy: player1.vy,
-                    p2vy: player2.vy,
-                    active: fullscreenTouchState.active
-                });
+                fullscreenLastY = currentY;
             });
             
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                fullscreenTouchState.active = false;
-                fullscreenTouchState.player = null;
+                
+                // Immediately stop all paddle movement
                 player1.vy = 0;
                 player2.vy = 0;
+                
+                fullscreenTouchActive = false;
+                fullscreenActivePlayer = null;
+                
                 if (indicator) {
                     indicator.classList.remove('active');
                 }
                 
-                console.log('Fullscreen touch end');
+                console.log('Fullscreen touch ended - paddles stopped');
             });
             
             canvas.addEventListener('touchcancel', (e) => {
                 e.preventDefault();
-                fullscreenTouchState.active = false;
-                fullscreenTouchState.player = null;
+                
+                // Immediately stop all paddle movement
                 player1.vy = 0;
                 player2.vy = 0;
+                
+                fullscreenTouchActive = false;
+                fullscreenActivePlayer = null;
+                
                 if (indicator) {
                     indicator.classList.remove('active');
                 }
                 
-                console.log('Fullscreen touch cancel');
+                console.log('Fullscreen touch cancelled - paddles stopped');
             });
         }
         
@@ -1306,15 +1303,11 @@
             console.log('Touch detected on document');
         });
         
-        // Enhanced canvas touch controls for regular mode
+        // Simple and direct paddle touch controls
         const gameCanvas = document.getElementById('gameCanvas');
-        let touchState = {
-            active: false,
-            player: null,
-            startY: 0,
-            lastY: 0,
-            lastTime: 0
-        };
+        let paddleTouchActive = false;
+        let activePaddlePlayer = null;
+        let lastTouchY = 0;
         
         if (gameCanvas) {
             gameCanvas.addEventListener('touchstart', function(e) {
@@ -1325,95 +1318,88 @@
                 const rect = gameCanvas.getBoundingClientRect();
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
-                const canvasWidth = rect.width;
                 
-                touchState.active = true;
-                touchState.startY = y;
-                touchState.lastY = y;
-                touchState.lastTime = Date.now();
+                paddleTouchActive = true;
+                lastTouchY = y;
                 
-                if (x < canvasWidth / 2) {
-                    touchState.player = 'p1';
+                // Left half = Player 1, Right half = Player 2 (PvP only)
+                if (x < rect.width / 2) {
+                    activePaddlePlayer = 1;
+                    console.log('Player 1 paddle activated');
                 } else if (!player2.isAI) {
-                    touchState.player = 'p2';
+                    activePaddlePlayer = 2;
+                    console.log('Player 2 paddle activated');
+                } else {
+                    paddleTouchActive = false; // Don't activate if touching P2 side in AI mode
+                    console.log('Touch on P2 side ignored (AI mode)');
                 }
-                
-                console.log('Touch start:', {
-                    player: touchState.player,
-                    x: x,
-                    y: y,
-                    canvasWidth: canvasWidth,
-                    side: x < canvasWidth / 2 ? 'left' : 'right',
-                    p2isAI: player2.isAI
-                });
             });
             
             gameCanvas.addEventListener('touchmove', function(e) {
-                if (smartphoneMode || !touchState.active) return;
+                if (smartphoneMode || !paddleTouchActive || !activePaddlePlayer) return;
                 e.preventDefault();
                 
                 const touch = e.touches[0];
                 const rect = gameCanvas.getBoundingClientRect();
-                const y = touch.clientY - rect.top;
+                const currentY = touch.clientY - rect.top;
                 
-                // Much simpler and more responsive movement
-                const deltaY = y - touchState.lastY;
+                // Calculate finger movement
+                const fingerDelta = currentY - lastTouchY;
                 
-                if (Math.abs(deltaY) > 1) {
-                    // Direct, responsive movement - much higher sensitivity
-                    const speed = Math.abs(deltaY) * 3.0; // Increased from 0.8 to 3.0
-                    const maxSpeed = 12; // Increased from 8 to 12
-                    const finalSpeed = Math.min(speed, maxSpeed);
+                if (Math.abs(fingerDelta) > 0.5) {
+                    // Convert finger speed directly to paddle speed
+                    const paddleSpeed = fingerDelta * 1.5; // Direct 1:1.5 ratio
+                    const maxPaddleSpeed = 15;
                     
-                    if (touchState.player === 'p1') {
-                        player1.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
-                        console.log('P1 moving:', finalSpeed, 'deltaY:', deltaY);
-                    } else if (touchState.player === 'p2') {
-                        player2.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
-                        console.log('P2 moving:', finalSpeed, 'deltaY:', deltaY);
+                    // Clamp speed
+                    const clampedSpeed = Math.max(-maxPaddleSpeed, Math.min(maxPaddleSpeed, paddleSpeed));
+                    
+                    // Apply to correct paddle
+                    if (activePaddlePlayer === 1) {
+                        player1.vy = clampedSpeed;
+                    } else if (activePaddlePlayer === 2) {
+                        player2.vy = clampedSpeed;
                     }
+                    
+                    console.log(`P${activePaddlePlayer} speed: ${clampedSpeed.toFixed(1)} (finger: ${fingerDelta.toFixed(1)})`);
                 } else {
-                    // Stop movement if finger barely moving
-                    if (touchState.player === 'p1') {
+                    // Stop paddle when finger stops moving
+                    if (activePaddlePlayer === 1) {
                         player1.vy = 0;
-                    } else if (touchState.player === 'p2') {
+                    } else if (activePaddlePlayer === 2) {
                         player2.vy = 0;
                     }
                 }
                 
-                touchState.lastY = y;
-                
-                console.log('Touch move details:', {
-                    player: touchState.player,
-                    deltaY: deltaY,
-                    p1vy: player1.vy,
-                    p2vy: player2.vy,
-                    active: touchState.active
-                });
+                lastTouchY = currentY;
             });
             
             gameCanvas.addEventListener('touchend', function(e) {
                 if (smartphoneMode) return;
                 e.preventDefault();
                 
-                touchState.active = false;
-                touchState.player = null;
+                // Immediately stop all paddle movement
                 player1.vy = 0;
                 player2.vy = 0;
                 
-                console.log('Touch end');
+                paddleTouchActive = false;
+                activePaddlePlayer = null;
+                
+                console.log('Touch ended - paddles stopped');
             });
             
             gameCanvas.addEventListener('touchcancel', function(e) {
                 if (smartphoneMode) return;
                 e.preventDefault();
                 
-                touchState.active = false;
-                touchState.player = null;
+                // Immediately stop all paddle movement
                 player1.vy = 0;
                 player2.vy = 0;
                 
-                console.log('Touch cancel');
+                paddleTouchActive = false;
+                activePaddlePlayer = null;
+                
+                console.log('Touch cancelled - paddles stopped');
             });
         }
         
