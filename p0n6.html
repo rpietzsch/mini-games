@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>P0n6 Game</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230f3460'/><rect x='4' y='14' width='4' height='4' fill='%23e94560'/><rect x='24' y='14' width='4' height='4' fill='%23e94560'/><circle cx='16' cy='16' r='2' fill='%23ffffff'/></svg>">
     <style>
@@ -213,25 +213,39 @@
             outline: none;
             border-color: #d63447;
         }
-        .mobile-controls {
+        .mobile-touch-areas {
             display: none;
-            margin-top: 20px;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            max-width: 300px;
-            margin: 20px auto 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
         }
-        .mobile-btn {
+        .mobile-touch-left, .mobile-touch-right {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            opacity: 0.1;
             background: #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
             color: white;
-            border: none;
-            padding: 30px;
-            font-size: 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            touch-action: manipulation;
+            font-weight: bold;
+            touch-action: none;
+            user-select: none;
         }
-        .mobile-btn:active {
+        .mobile-touch-left {
+            left: 0;
+        }
+        .mobile-touch-right {
+            right: 0;
+        }
+        .mobile-touch-left.active, .mobile-touch-right.active {
+            opacity: 0.2;
             background: #d63447;
         }
         .game-over {
@@ -245,18 +259,142 @@
             font-size: 32px;
             font-weight: bold;
         }
+        /* Fullscreen smartphone mode */
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #1a1a2e;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .fullscreen-game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .fullscreen-canvas {
+            width: 95vw;
+            max-width: 95vh * 2;
+            height: auto;
+            border: 2px solid #e94560;
+            border-radius: 5px;
+            background: #000;
+        }
+        .fullscreen-score {
+            color: #ecf0f1;
+            font-size: 2.5em;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .touch-areas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            z-index: 10000;
+        }
+        .touch-area-left, .touch-area-right {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            opacity: 0.1;
+            background: #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+            font-weight: bold;
+        }
+        .touch-area-left {
+            left: 0;
+        }
+        .touch-area-right {
+            right: 0;
+        }
+        .fullscreen-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 15px;
+            z-index: 10001;
+        }
+        .fullscreen-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .fullscreen-btn:hover {
+            background: #d63447;
+        }
+        .orientation-prompt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(26, 26, 46, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            color: #ecf0f1;
+            text-align: center;
+        }
+        .rotate-icon {
+            font-size: 4em;
+            margin: 20px;
+            animation: rotate 2s linear infinite;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         @media (max-width: 768px) {
             .game-container {
                 padding: 10px;
             }
-            .mobile-controls {
-                display: grid;
+            .mobile-touch-areas {
+                display: block;
             }
             .score-display {
                 font-size: 32px;
             }
             .game-title {
                 font-size: 24px;
+            }
+        }
+        @media (max-width: 768px) and (orientation: landscape) {
+            .fullscreen-mode.active {
+                display: flex;
+            }
+            .touch-areas.active {
+                display: block;
+            }
+            .fullscreen-controls.active {
+                display: flex;
             }
         }
     </style>
@@ -289,6 +427,7 @@
                 <select id="gameMode" onchange="changeGameMode()">
                     <option value="ai">Player vs AI</option>
                     <option value="pvp">Player vs Player</option>
+                    <option value="smartphone">Smartphone Mode</option>
                 </select>
             </div>
             <div class="difficulty-selector" id="difficultySelector">
@@ -314,10 +453,39 @@
             First to 5 wins!
         </div>
         
-        <div class="mobile-controls">
-            <button class="mobile-btn" ontouchstart="player1Up()" ontouchend="player1Stop()">↑</button>
-            <button class="mobile-btn" ontouchstart="player1Down()" ontouchend="player1Stop()">↓</button>
+        <!-- Mobile Touch Areas -->
+        <div class="mobile-touch-areas" id="mobileTouchAreas">
+            <div class="mobile-touch-left" id="mobileLeft">Player 1</div>
+            <div class="mobile-touch-right" id="mobileRight">Player 2</div>
         </div>
+    </div>
+    
+    <!-- Fullscreen Smartphone Mode -->
+    <div class="fullscreen-mode" id="fullscreenMode">
+        <div class="fullscreen-game-container">
+            <div class="fullscreen-score" id="fullscreenScore">0 - 0</div>
+            <canvas id="fullscreenCanvas" class="fullscreen-canvas" width="800" height="400"></canvas>
+        </div>
+    </div>
+    
+    <!-- Touch Areas for Smartphone Mode -->
+    <div class="touch-areas" id="touchAreas">
+        <div class="touch-area-left" id="touchLeft">P1</div>
+        <div class="touch-area-right" id="touchRight">P2</div>
+    </div>
+    
+    <!-- Fullscreen Controls -->
+    <div class="fullscreen-controls" id="fullscreenControls">
+        <button class="fullscreen-btn" onclick="exitFullscreen()">Exit</button>
+        <button class="fullscreen-btn" onclick="resetGame()">Reset</button>
+        <button class="fullscreen-btn" onclick="togglePause()">Pause</button>
+    </div>
+    
+    <!-- Orientation Prompt -->
+    <div class="orientation-prompt" id="orientationPrompt">
+        <div class="rotate-icon">📱</div>
+        <h2>Please rotate your device</h2>
+        <p>Turn your phone to landscape mode for the best gaming experience</p>
     </div>
     
     <div id="helpModal" class="help-modal" onclick="hideHelp()">
@@ -332,12 +500,20 @@
                 <div class="control-item">P/ESC: Pause</div>
             </div>
             
+            <h3>Smartphone Mode:</h3>
+            <div class="controls-grid">
+                <div class="control-item">Left Half: Player 1</div>
+                <div class="control-item">Right Half: Player 2</div>
+                <div class="control-item">Touch & Slide</div>
+                <div class="control-item">Auto Fullscreen</div>
+            </div>
+            
             <h3>Game Rules:</h3>
             <p style="text-align: left; margin: 10px 0;">
                 • First to 5 points wins<br>
                 • Ball speeds up with each hit<br>
                 • Try different difficulty levels<br>
-                • On mobile: Use touch controls
+                • Smartphone mode: Rotate to landscape
             </p>
             
             <button class="close-btn" onclick="hideHelp()">Close</button>
@@ -368,6 +544,14 @@
         let gamePaused = false;
         let difficulty = 'medium';
         let aiSettings = difficulties[difficulty];
+        let smartphoneMode = false;
+        let fullscreenCanvas, fullscreenCtx;
+        
+        // Touch controls
+        let touchControls = {
+            player1: { active: false, startY: 0, currentY: 0 },
+            player2: { active: false, startY: 0, currentY: 0 }
+        };
         
         // Game objects
         let ball = {
@@ -607,6 +791,7 @@
         function updateScore() {
             document.getElementById('player1Score').textContent = player1.score;
             document.getElementById('player2Score').textContent = player2.score;
+            updateFullscreenScore();
         }
         
         function update() {
@@ -631,6 +816,9 @@
         function gameLoop() {
             update();
             draw();
+            if (smartphoneMode) {
+                drawFullscreen();
+            }
             requestAnimationFrame(gameLoop);
         }
         
@@ -682,13 +870,43 @@
         function changeGameMode() {
             const mode = document.getElementById('gameMode').value;
             player2.isAI = (mode === 'ai');
+            smartphoneMode = (mode === 'smartphone');
             
             // Show/hide difficulty selector based on mode
             const difficultySelector = document.getElementById('difficultySelector');
             difficultySelector.style.display = player2.isAI ? 'block' : 'none';
             
+            // Update mobile touch area labels
+            updateMobileTouchLabels();
+            
+            // Handle smartphone mode
+            if (smartphoneMode) {
+                enterSmartphoneMode();
+            } else {
+                exitFullscreen();
+            }
+            
             // Reset the game when mode changes
             resetGame();
+        }
+        
+        function updateMobileTouchLabels() {
+            const mobileLeft = document.getElementById('mobileLeft');
+            const mobileRight = document.getElementById('mobileRight');
+            
+            if (mobileLeft) {
+                mobileLeft.textContent = 'Player 1';
+            }
+            
+            if (mobileRight) {
+                if (player2.isAI) {
+                    mobileRight.textContent = 'AI Control';
+                    mobileRight.style.opacity = '0.05';
+                } else {
+                    mobileRight.textContent = 'Player 2';
+                    mobileRight.style.opacity = '0.1';
+                }
+            }
         }
         
         // Keyboard controls
@@ -736,17 +954,100 @@
             }
         }
         
-        // Mobile controls
-        function player1Up() {
-            player1.vy = -1;
+        // Mobile slide controls
+        let mobileControls = {
+            left: { active: false, startY: 0, currentY: 0 },
+            right: { active: false, startY: 0, currentY: 0 }
+        };
+        
+        function setupMobileControls() {
+            const mobileLeft = document.getElementById('mobileLeft');
+            const mobileRight = document.getElementById('mobileRight');
+            
+            if (!mobileLeft || !mobileRight) return;
+            
+            // Left side controls (Player 1)
+            mobileLeft.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                mobileControls.left.active = true;
+                mobileControls.left.startY = touch.clientY;
+                mobileControls.left.currentY = touch.clientY;
+                mobileLeft.classList.add('active');
+            });
+            
+            mobileLeft.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (mobileControls.left.active && e.touches[0]) {
+                    mobileControls.left.currentY = e.touches[0].clientY;
+                    updatePaddleFromMobileTouch(player1, mobileControls.left);
+                }
+            });
+            
+            mobileLeft.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                mobileControls.left.active = false;
+                player1.vy = 0;
+                mobileLeft.classList.remove('active');
+            });
+            
+            mobileLeft.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                mobileControls.left.active = false;
+                player1.vy = 0;
+                mobileLeft.classList.remove('active');
+            });
+            
+            // Right side controls (Player 2 - only in PvP mode)
+            mobileRight.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (player2.isAI) return; // Only works in Player vs Player mode
+                
+                const touch = e.touches[0];
+                mobileControls.right.active = true;
+                mobileControls.right.startY = touch.clientY;
+                mobileControls.right.currentY = touch.clientY;
+                mobileRight.classList.add('active');
+            });
+            
+            mobileRight.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (player2.isAI) return;
+                
+                if (mobileControls.right.active && e.touches[0]) {
+                    mobileControls.right.currentY = e.touches[0].clientY;
+                    updatePaddleFromMobileTouch(player2, mobileControls.right);
+                }
+            });
+            
+            mobileRight.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (player2.isAI) return;
+                
+                mobileControls.right.active = false;
+                player2.vy = 0;
+                mobileRight.classList.remove('active');
+            });
+            
+            mobileRight.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                if (player2.isAI) return;
+                
+                mobileControls.right.active = false;
+                player2.vy = 0;
+                mobileRight.classList.remove('active');
+            });
         }
         
-        function player1Down() {
-            player1.vy = 1;
-        }
-        
-        function player1Stop() {
-            player1.vy = 0;
+        function updatePaddleFromMobileTouch(player, touchControl) {
+            const deltaY = touchControl.currentY - touchControl.startY;
+            const sensitivity = 0.8;
+            
+            if (Math.abs(deltaY) > 3) {
+                player.vy = deltaY > 0 ? sensitivity : -sensitivity;
+            } else {
+                player.vy = 0;
+            }
         }
         
         // Help modal
@@ -758,8 +1059,223 @@
             document.getElementById('helpModal').style.display = 'none';
         }
         
+        // Smartphone Mode Functions
+        function enterSmartphoneMode() {
+            if (!isMobileDevice()) {
+                alert('Smartphone mode is designed for mobile devices. Please use a phone or tablet.');
+                document.getElementById('gameMode').value = 'ai';
+                changeGameMode();
+                return;
+            }
+            
+            // Check orientation
+            if (window.innerHeight > window.innerWidth) {
+                showOrientationPrompt();
+            } else {
+                activateFullscreenMode();
+            }
+        }
+        
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   ('ontouchstart' in window) || 
+                   (navigator.maxTouchPoints > 0);
+        }
+        
+        function showOrientationPrompt() {
+            document.getElementById('orientationPrompt').style.display = 'flex';
+        }
+        
+        function hideOrientationPrompt() {
+            document.getElementById('orientationPrompt').style.display = 'none';
+        }
+        
+        function activateFullscreenMode() {
+            hideOrientationPrompt();
+            
+            // Request fullscreen
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+            
+            // Show fullscreen UI
+            document.getElementById('fullscreenMode').classList.add('active');
+            document.getElementById('touchAreas').classList.add('active');
+            document.getElementById('fullscreenControls').classList.add('active');
+            
+            // Setup fullscreen canvas
+            fullscreenCanvas = document.getElementById('fullscreenCanvas');
+            fullscreenCtx = fullscreenCanvas.getContext('2d');
+            
+            // Setup touch controls
+            setupTouchControls();
+            
+            // Force player vs player mode
+            player2.isAI = false;
+        }
+        
+        function exitFullscreen() {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            
+            // Hide fullscreen UI
+            document.getElementById('fullscreenMode').classList.remove('active');
+            document.getElementById('touchAreas').classList.remove('active');
+            document.getElementById('fullscreenControls').classList.remove('active');
+            hideOrientationPrompt();
+            
+            // Reset to normal mode
+            smartphoneMode = false;
+            document.getElementById('gameMode').value = 'ai';
+            player2.isAI = true;
+            resetGame();
+        }
+        
+        function setupTouchControls() {
+            const touchLeft = document.getElementById('touchLeft');
+            const touchRight = document.getElementById('touchRight');
+            
+            // Left side (Player 1)
+            touchLeft.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                touchControls.player1.active = true;
+                touchControls.player1.startY = touch.clientY;
+                touchControls.player1.currentY = touch.clientY;
+            });
+            
+            touchLeft.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (touchControls.player1.active) {
+                    const touch = e.touches[0];
+                    touchControls.player1.currentY = touch.clientY;
+                    updatePaddleFromTouch(player1, touchControls.player1);
+                }
+            });
+            
+            touchLeft.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touchControls.player1.active = false;
+                player1.vy = 0;
+            });
+            
+            // Right side (Player 2)
+            touchRight.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                touchControls.player2.active = true;
+                touchControls.player2.startY = touch.clientY;
+                touchControls.player2.currentY = touch.clientY;
+            });
+            
+            touchRight.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (touchControls.player2.active) {
+                    const touch = e.touches[0];
+                    touchControls.player2.currentY = touch.clientY;
+                    updatePaddleFromTouch(player2, touchControls.player2);
+                }
+            });
+            
+            touchRight.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touchControls.player2.active = false;
+                player2.vy = 0;
+            });
+        }
+        
+        function updatePaddleFromTouch(player, touchControl) {
+            const deltaY = touchControl.currentY - touchControl.startY;
+            const sensitivity = 0.3;
+            
+            if (Math.abs(deltaY) > 5) {
+                player.vy = deltaY > 0 ? sensitivity : -sensitivity;
+            } else {
+                player.vy = 0;
+            }
+        }
+        
+        function updateFullscreenScore() {
+            if (smartphoneMode) {
+                document.getElementById('fullscreenScore').textContent = 
+                    `${player1.score} - ${player2.score}`;
+            }
+        }
+        
+        function drawFullscreen() {
+            if (!smartphoneMode || !fullscreenCtx) return;
+            
+            // Clear canvas
+            fullscreenCtx.fillStyle = '#000000';
+            fullscreenCtx.fillRect(0, 0, fullscreenCanvas.width, fullscreenCanvas.height);
+            
+            // Draw net
+            fullscreenCtx.strokeStyle = '#e94560';
+            fullscreenCtx.lineWidth = 2;
+            fullscreenCtx.setLineDash([10, 10]);
+            fullscreenCtx.beginPath();
+            fullscreenCtx.moveTo(fullscreenCanvas.width / 2, 0);
+            fullscreenCtx.lineTo(fullscreenCanvas.width / 2, fullscreenCanvas.height);
+            fullscreenCtx.stroke();
+            fullscreenCtx.setLineDash([]);
+            
+            // Draw paddles
+            fullscreenCtx.fillStyle = '#e94560';
+            fullscreenCtx.fillRect(player1.x, player1.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+            fullscreenCtx.fillRect(player2.x, player2.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+            
+            // Draw ball
+            fullscreenCtx.fillStyle = '#ffffff';
+            fullscreenCtx.beginPath();
+            fullscreenCtx.arc(ball.x, ball.y, BALL_SIZE, 0, Math.PI * 2);
+            fullscreenCtx.fill();
+        }
+        
         // Control loop
         setInterval(updateControls, 1000 / 60);
+        
+        // Orientation change detection
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (smartphoneMode) {
+                    if (window.innerHeight > window.innerWidth) {
+                        showOrientationPrompt();
+                    } else {
+                        activateFullscreenMode();
+                    }
+                }
+            }, 100);
+        });
+        
+        // Auto-serve in smartphone mode
+        function autoServeInSmartphoneMode() {
+            if (smartphoneMode && gameRunning && ball.vx === 0) {
+                setTimeout(() => {
+                    serveBall();
+                }, 2000);
+            }
+        }
+        
+        // Override resetBall for smartphone mode
+        const originalResetBall = resetBall;
+        resetBall = function() {
+            originalResetBall();
+            autoServeInSmartphoneMode();
+        };
+        
+        // Initialize mobile controls
+        setupMobileControls();
         
         // Initialize game
         draw();
