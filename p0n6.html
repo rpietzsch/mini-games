@@ -427,7 +427,6 @@
                 <select id="gameMode" onchange="changeGameMode()">
                     <option value="ai">Player vs AI</option>
                     <option value="pvp">Player vs Player</option>
-                    <option value="smartphone">Smartphone Mode</option>
                 </select>
             </div>
             <div class="difficulty-selector" id="difficultySelector">
@@ -529,14 +528,14 @@
         const PADDLE_HEIGHT = 80;
         const BALL_SIZE = 10;
         const WINNING_SCORE = 5;
-        const PADDLE_SPEED = 5;
+        const PADDLE_SPEED = 7;
         
         // Difficulty settings
         const difficulties = {
-            easy: { aiSpeed: 2, aiReactionTime: 20 },
-            medium: { aiSpeed: 4, aiReactionTime: 15 },
-            hard: { aiSpeed: 6, aiReactionTime: 10 },
-            impossible: { aiSpeed: 8, aiReactionTime: 5 }
+            easy: { aiSpeed: 3, aiReactionTime: 20 },
+            medium: { aiSpeed: 5, aiReactionTime: 15 },
+            hard: { aiSpeed: 7, aiReactionTime: 10 },
+            impossible: { aiSpeed: 9, aiReactionTime: 5 }
         };
         
         // Game state
@@ -882,7 +881,7 @@
             // Handle smartphone mode
             if (smartphoneMode) {
                 enterSmartphoneMode();
-            } else {
+            } else if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
                 exitFullscreen();
             }
             
@@ -1041,10 +1040,14 @@
         
         function updatePaddleFromMobileTouch(player, touchControl) {
             const deltaY = touchControl.currentY - touchControl.startY;
-            const sensitivity = 0.8;
+            const baseSensitivity = 2.5;
+            const maxSpeed = 8;
             
-            if (Math.abs(deltaY) > 3) {
-                player.vy = deltaY > 0 ? sensitivity : -sensitivity;
+            if (Math.abs(deltaY) > 2) {
+                // Dynamic sensitivity based on slide distance
+                const speedMultiplier = Math.min(Math.abs(deltaY) / 50, 2.5);
+                const speed = Math.min(baseSensitivity * speedMultiplier, maxSpeed);
+                player.vy = deltaY > 0 ? speed : -speed;
             } else {
                 player.vy = 0;
             }
@@ -1120,13 +1123,15 @@
         }
         
         function exitFullscreen() {
-            // Exit fullscreen
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
+            // Exit fullscreen only if currently in fullscreen mode
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
             }
             
             // Hide fullscreen UI
@@ -1197,10 +1202,14 @@
         
         function updatePaddleFromTouch(player, touchControl) {
             const deltaY = touchControl.currentY - touchControl.startY;
-            const sensitivity = 0.3;
+            const baseSensitivity = 1.8;
+            const maxSpeed = 6;
             
-            if (Math.abs(deltaY) > 5) {
-                player.vy = deltaY > 0 ? sensitivity : -sensitivity;
+            if (Math.abs(deltaY) > 3) {
+                // Dynamic sensitivity for smartphone fullscreen mode
+                const speedMultiplier = Math.min(Math.abs(deltaY) / 40, 2.0);
+                const speed = Math.min(baseSensitivity * speedMultiplier, maxSpeed);
+                player.vy = deltaY > 0 ? speed : -speed;
             } else {
                 player.vy = 0;
             }
@@ -1276,6 +1285,20 @@
         
         // Initialize mobile controls
         setupMobileControls();
+        
+        // Add smartphone mode option only on mobile devices
+        function initializeMobileOptions() {
+            if (isMobileDevice()) {
+                const gameMode = document.getElementById('gameMode');
+                const smartphoneOption = document.createElement('option');
+                smartphoneOption.value = 'smartphone';
+                smartphoneOption.textContent = 'Smartphone Mode';
+                gameMode.appendChild(smartphoneOption);
+            }
+        }
+        
+        // Initialize mobile options
+        initializeMobileOptions();
         
         // Initialize game
         draw();
