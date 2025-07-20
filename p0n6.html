@@ -753,6 +753,17 @@
             updateFullscreenScore();
         }
         
+        // Debug function to visualize paddle movement
+        function debugPaddleMovement() {
+            const debugInfo = `P1: y=${Math.round(player1.y)}, vy=${player1.vy.toFixed(1)} | P2: y=${Math.round(player2.y)}, vy=${player2.vy.toFixed(1)}`;
+            if (document.getElementById('touchHint')) {
+                document.getElementById('touchHint').textContent = debugInfo;
+            }
+        }
+        
+        // Call debug function periodically
+        setInterval(debugPaddleMovement, 100);
+        
         function update() {
             // Always update paddles for responsive controls
             if (player1.vy !== 0) {
@@ -1109,28 +1120,41 @@
                 const touch = e.touches[0];
                 const rect = canvas.getBoundingClientRect();
                 const y = touch.clientY - rect.top;
-                const currentTime = Date.now();
                 
-                // Calculate movement speed
+                // Much simpler and more responsive movement for fullscreen
                 const deltaY = y - fullscreenTouchState.lastY;
-                const deltaTime = currentTime - fullscreenTouchState.lastTime;
                 
-                if (deltaTime > 0) {
-                    const speed = Math.abs(deltaY) * 0.6; // Sensitivity for fullscreen
-                    const maxSpeed = 8;
+                if (Math.abs(deltaY) > 1) {
+                    // Direct, responsive movement - higher sensitivity for fullscreen
+                    const speed = Math.abs(deltaY) * 2.5; // Increased from 0.6 to 2.5
+                    const maxSpeed = 12; // Increased from 8 to 12
                     const finalSpeed = Math.min(speed, maxSpeed);
                     
                     if (fullscreenTouchState.player === 'p1') {
                         player1.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                        console.log('Fullscreen P1 moving:', finalSpeed, 'deltaY:', deltaY);
                     } else if (fullscreenTouchState.player === 'p2') {
                         player2.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                        console.log('Fullscreen P2 moving:', finalSpeed, 'deltaY:', deltaY);
+                    }
+                } else {
+                    // Stop movement if finger barely moving
+                    if (fullscreenTouchState.player === 'p1') {
+                        player1.vy = 0;
+                    } else if (fullscreenTouchState.player === 'p2') {
+                        player2.vy = 0;
                     }
                 }
                 
                 fullscreenTouchState.lastY = y;
-                fullscreenTouchState.lastTime = currentTime;
                 
-                console.log('Fullscreen touch move:', fullscreenTouchState.player, deltaY, player1.vy);
+                console.log('Fullscreen touch details:', {
+                    player: fullscreenTouchState.player,
+                    deltaY: deltaY,
+                    p1vy: player1.vy,
+                    p2vy: player2.vy,
+                    active: fullscreenTouchState.active
+                });
             });
             
             canvas.addEventListener('touchend', (e) => {
@@ -1314,7 +1338,14 @@
                     touchState.player = 'p2';
                 }
                 
-                console.log('Touch start:', touchState.player, y);
+                console.log('Touch start:', {
+                    player: touchState.player,
+                    x: x,
+                    y: y,
+                    canvasWidth: canvasWidth,
+                    side: x < canvasWidth / 2 ? 'left' : 'right',
+                    p2isAI: player2.isAI
+                });
             });
             
             gameCanvas.addEventListener('touchmove', function(e) {
@@ -1324,28 +1355,41 @@
                 const touch = e.touches[0];
                 const rect = gameCanvas.getBoundingClientRect();
                 const y = touch.clientY - rect.top;
-                const currentTime = Date.now();
                 
-                // Calculate movement speed
+                // Much simpler and more responsive movement
                 const deltaY = y - touchState.lastY;
-                const deltaTime = currentTime - touchState.lastTime;
                 
-                if (deltaTime > 0) {
-                    const speed = Math.abs(deltaY) * 0.8; // Sensitivity
-                    const maxSpeed = 8;
+                if (Math.abs(deltaY) > 1) {
+                    // Direct, responsive movement - much higher sensitivity
+                    const speed = Math.abs(deltaY) * 3.0; // Increased from 0.8 to 3.0
+                    const maxSpeed = 12; // Increased from 8 to 12
                     const finalSpeed = Math.min(speed, maxSpeed);
                     
                     if (touchState.player === 'p1') {
                         player1.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                        console.log('P1 moving:', finalSpeed, 'deltaY:', deltaY);
                     } else if (touchState.player === 'p2') {
                         player2.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                        console.log('P2 moving:', finalSpeed, 'deltaY:', deltaY);
+                    }
+                } else {
+                    // Stop movement if finger barely moving
+                    if (touchState.player === 'p1') {
+                        player1.vy = 0;
+                    } else if (touchState.player === 'p2') {
+                        player2.vy = 0;
                     }
                 }
                 
                 touchState.lastY = y;
-                touchState.lastTime = currentTime;
                 
-                console.log('Touch move:', touchState.player, deltaY, player1.vy);
+                console.log('Touch move details:', {
+                    player: touchState.player,
+                    deltaY: deltaY,
+                    p1vy: player1.vy,
+                    p2vy: player2.vy,
+                    active: touchState.active
+                });
             });
             
             gameCanvas.addEventListener('touchend', function(e) {
