@@ -297,6 +297,43 @@
             margin: 10px 0;
             font-family: 'Courier New', monospace;
         }
+        .touch-areas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .touch-area-left, .touch-area-right {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            opacity: 0.05;
+            background: #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+            font-weight: bold;
+            pointer-events: auto;
+            touch-action: none;
+            user-select: none;
+        }
+        .touch-area-left {
+            left: 0;
+        }
+        .touch-area-right {
+            right: 0;
+        }
+        .touch-area-left.active, .touch-area-right.active {
+            opacity: 0.15;
+            background: #d63447;
+        }
         .canvas-touch-hint {
             position: absolute;
             top: 10px;
@@ -318,7 +355,7 @@
             transform: translateX(-50%);
             display: none;
             gap: 15px;
-            z-index: 10001;
+            z-index: 10002;
         }
         .fullscreen-btn {
             background: #e94560;
@@ -374,6 +411,9 @@
         @media (max-width: 768px) and (orientation: landscape) {
             .fullscreen-mode.active {
                 display: flex;
+            }
+            .touch-areas.active {
+                display: block;
             }
             .fullscreen-controls.active {
                 display: flex;
@@ -448,6 +488,12 @@
             <canvas id="fullscreenCanvas" class="fullscreen-canvas" width="800" height="400"></canvas>
             <div class="canvas-touch-hint" id="touchHint">Touch left/right side of screen to control paddles</div>
         </div>
+    </div>
+    
+    <!-- Touch Areas for Smartphone Mode -->
+    <div class="touch-areas" id="touchAreas">
+        <div class="touch-area-left" id="touchLeft">P1</div>
+        <div class="touch-area-right" id="touchRight">P2</div>
     </div>
     
     <!-- Fullscreen Controls -->
@@ -937,71 +983,67 @@
         };
         
         function setupMobileControls() {
+            const mobileLeft = document.getElementById('mobileLeft');
+            const mobileRight = document.getElementById('mobileRight');
             const canvas = document.getElementById('gameCanvas');
             
-            // Canvas-based touch controls for regular mobile mode
-            canvas.addEventListener('touchstart', (e) => {
-                if (smartphoneMode) return; // Skip if in smartphone mode
+            // Setup canvas touch controls for regular mobile mode
+            if (canvas && !smartphoneMode) {
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    const canvasWidth = rect.width;
+                    
+                    // Determine which side was touched
+                    if (x < canvasWidth / 2) {
+                        // Left side - Player 1
+                        mobileControls.left.active = true;
+                        mobileControls.left.startY = y;
+                        mobileControls.left.currentY = y;
+                    } else if (!player2.isAI) {
+                        // Right side - Player 2 (only in PvP mode)
+                        mobileControls.right.active = true;
+                        mobileControls.right.startY = y;
+                        mobileControls.right.currentY = y;
+                    }
+                });
                 
-                e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                const canvasWidth = rect.width;
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const y = touch.clientY - rect.top;
+                    
+                    if (mobileControls.left.active) {
+                        const prevY = mobileControls.left.currentY;
+                        mobileControls.left.currentY = y;
+                        updatePaddleFromMobileTouchPrecise(player1, mobileControls.left, prevY);
+                    } else if (mobileControls.right.active && !player2.isAI) {
+                        const prevY = mobileControls.right.currentY;
+                        mobileControls.right.currentY = y;
+                        updatePaddleFromMobileTouchPrecise(player2, mobileControls.right, prevY);
+                    }
+                });
                 
-                // Determine which side was touched
-                if (x < canvasWidth / 2) {
-                    // Left side - Player 1
-                    mobileControls.left.active = true;
-                    mobileControls.left.startY = y;
-                    mobileControls.left.currentY = y;
-                } else if (!player2.isAI) {
-                    // Right side - Player 2 (only in PvP mode)
-                    mobileControls.right.active = true;
-                    mobileControls.right.startY = y;
-                    mobileControls.right.currentY = y;
-                }
-            });
-            
-            canvas.addEventListener('touchmove', (e) => {
-                if (smartphoneMode) return;
+                canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    mobileControls.left.active = false;
+                    mobileControls.right.active = false;
+                    player1.vy = 0;
+                    if (!player2.isAI) player2.vy = 0;
+                });
                 
-                e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const y = touch.clientY - rect.top;
-                
-                if (mobileControls.left.active) {
-                    const prevY = mobileControls.left.currentY;
-                    mobileControls.left.currentY = y;
-                    updatePaddleFromMobileTouchPrecise(player1, mobileControls.left, prevY);
-                } else if (mobileControls.right.active && !player2.isAI) {
-                    const prevY = mobileControls.right.currentY;
-                    mobileControls.right.currentY = y;
-                    updatePaddleFromMobileTouchPrecise(player2, mobileControls.right, prevY);
-                }
-            });
-            
-            canvas.addEventListener('touchend', (e) => {
-                if (smartphoneMode) return;
-                
-                e.preventDefault();
-                mobileControls.left.active = false;
-                mobileControls.right.active = false;
-                player1.vy = 0;
-                if (!player2.isAI) player2.vy = 0;
-            });
-            
-            canvas.addEventListener('touchcancel', (e) => {
-                if (smartphoneMode) return;
-                
-                e.preventDefault();
-                mobileControls.left.active = false;
-                mobileControls.right.active = false;
-                player1.vy = 0;
-                if (!player2.isAI) player2.vy = 0;
-            });
+                canvas.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    mobileControls.left.active = false;
+                    mobileControls.right.active = false;
+                    player1.vy = 0;
+                    if (!player2.isAI) player2.vy = 0;
+                });
+            }
         }
         
         function updatePaddleFromMobileTouchPrecise(player, touchControl, prevY) {
@@ -1091,6 +1133,7 @@
             
             // Show fullscreen UI
             document.getElementById('fullscreenMode').classList.add('active');
+            document.getElementById('touchAreas').classList.add('active');
             document.getElementById('fullscreenControls').classList.add('active');
             
             // Hide touch hint after a few seconds
@@ -1124,6 +1167,7 @@
             
             // Hide fullscreen UI
             document.getElementById('fullscreenMode').classList.remove('active');
+            document.getElementById('touchAreas').classList.remove('active');
             document.getElementById('fullscreenControls').classList.remove('active');
             hideOrientationPrompt();
             
@@ -1135,62 +1179,83 @@
         }
         
         function setupTouchControls() {
-            const canvas = fullscreenCanvas || document.getElementById('gameCanvas');
+            const touchLeft = document.getElementById('touchLeft');
+            const touchRight = document.getElementById('touchRight');
             
-            // Canvas-based touch controls
-            canvas.addEventListener('touchstart', (e) => {
+            if (!touchLeft || !touchRight) return;
+            
+            // Left side (Player 1)
+            touchLeft.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                const canvasWidth = rect.width;
-                
-                // Determine which side was touched
-                if (x < canvasWidth / 2) {
-                    // Left side - Player 1
-                    touchControls.player1.active = true;
-                    touchControls.player1.startY = y;
-                    touchControls.player1.currentY = y;
-                } else if (!player2.isAI) {
-                    // Right side - Player 2 (only in PvP mode)
-                    touchControls.player2.active = true;
-                    touchControls.player2.startY = y;
-                    touchControls.player2.currentY = y;
+                touchControls.player1.active = true;
+                touchControls.player1.startY = touch.clientY;
+                touchControls.player1.currentY = touch.clientY;
+                touchLeft.classList.add('active');
+            });
+            
+            touchLeft.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (touchControls.player1.active && e.touches[0]) {
+                    const prevY = touchControls.player1.currentY;
+                    touchControls.player1.currentY = e.touches[0].clientY;
+                    updatePaddleFromTouchPrecise(player1, touchControls.player1, prevY);
                 }
             });
             
-            canvas.addEventListener('touchmove', (e) => {
+            touchLeft.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const y = touch.clientY - rect.top;
+                touchControls.player1.active = false;
+                player1.vy = 0;
+                touchLeft.classList.remove('active');
+            });
+            
+            touchLeft.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                touchControls.player1.active = false;
+                player1.vy = 0;
+                touchLeft.classList.remove('active');
+            });
+            
+            // Right side (Player 2)
+            touchRight.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (player2.isAI) return;
                 
-                if (touchControls.player1.active) {
-                    const prevY = touchControls.player1.currentY;
-                    touchControls.player1.currentY = y;
-                    updatePaddleFromTouchPrecise(player1, touchControls.player1, prevY);
-                } else if (touchControls.player2.active) {
+                const touch = e.touches[0];
+                touchControls.player2.active = true;
+                touchControls.player2.startY = touch.clientY;
+                touchControls.player2.currentY = touch.clientY;
+                touchRight.classList.add('active');
+            });
+            
+            touchRight.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (player2.isAI) return;
+                
+                if (touchControls.player2.active && e.touches[0]) {
                     const prevY = touchControls.player2.currentY;
-                    touchControls.player2.currentY = y;
+                    touchControls.player2.currentY = e.touches[0].clientY;
                     updatePaddleFromTouchPrecise(player2, touchControls.player2, prevY);
                 }
             });
             
-            canvas.addEventListener('touchend', (e) => {
+            touchRight.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                touchControls.player1.active = false;
+                if (player2.isAI) return;
+                
                 touchControls.player2.active = false;
-                player1.vy = 0;
                 player2.vy = 0;
+                touchRight.classList.remove('active');
             });
             
-            canvas.addEventListener('touchcancel', (e) => {
+            touchRight.addEventListener('touchcancel', (e) => {
                 e.preventDefault();
-                touchControls.player1.active = false;
+                if (player2.isAI) return;
+                
                 touchControls.player2.active = false;
-                player1.vy = 0;
                 player2.vy = 0;
+                touchRight.classList.remove('active');
             });
         }
         
@@ -1211,9 +1276,9 @@
         
         function updatePaddleFromTouchPrecise(player, touchControl, prevY) {
             const movementDelta = touchControl.currentY - prevY;
-            const baseSensitivity = 2.0;
+            const baseSensitivity = 0.15;
             const maxSpeed = 8;
-            const deadZone = 1;
+            const deadZone = 2;
             
             // Immediate response to finger movement
             if (Math.abs(movementDelta) > deadZone) {
