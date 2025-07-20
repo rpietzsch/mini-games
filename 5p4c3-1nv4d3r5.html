@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>5p4c3 1nv4d3r5 Game</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230f3460'/><rect x='8' y='4' width='16' height='8' fill='%23e94560'/><rect x='4' y='8' width='24' height='4' fill='%23e94560'/><rect x='12' y='12' width='8' height='4' fill='%23e94560'/><rect x='10' y='16' width='12' height='4' fill='%23e94560'/><rect x='14' y='24' width='4' height='4' fill='%23ffffff'/></svg>">
     <style>
@@ -233,6 +233,109 @@
         .start-btn:hover {
             background: #d63447;
         }
+        .mobile-controls {
+            display: none;
+            margin-top: 15px;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+        .mobile-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .mobile-btn:active {
+            background: #d63447;
+            transform: scale(0.95);
+        }
+        .movement-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .move-btn {
+            width: 50px;
+            height: 50px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            transition: background 0.3s;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .move-btn:active {
+            background: #d63447;
+            transform: scale(0.95);
+        }
+        .shoot-btn {
+            width: 80px;
+            height: 50px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+            touch-action: manipulation;
+            user-select: none;
+            margin: 0 15px;
+        }
+        .shoot-btn:active {
+            background: #219a52;
+            transform: scale(0.95);
+        }
+        .pause-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.3s;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .pause-btn:active {
+            background: #e67e22;
+            transform: scale(0.95);
+        }
+        .touch-area {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 150px;
+            background: rgba(22, 33, 62, 0.8);
+            border-radius: 10px;
+            margin-top: 10px;
+            touch-action: none;
+        }
+        .touch-instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #95a5a6;
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
         @media (max-width: 600px) {
             .game-container {
                 padding: 10px;
@@ -242,7 +345,40 @@
             }
             #gameCanvas {
                 width: 100%;
+                max-width: 400px;
                 height: auto;
+                max-height: 60vh;
+            }
+            .start-screen, .game-over-screen {
+                max-width: 90%;
+                padding: 20px;
+            }
+            .start-screen h2, .game-over-screen h2 {
+                font-size: 1.5em;
+            }
+            .start-screen p, .game-over-screen p {
+                font-size: 0.9em;
+                margin: 10px 0;
+            }
+            .mobile-controls {
+                display: flex;
+            }
+            .touch-area {
+                display: block;
+            }
+            .score-display, .lives-display {
+                font-size: 1em;
+            }
+            .help-content {
+                padding: 20px;
+                max-width: 300px;
+            }
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+            .control-item {
+                text-align: center;
             }
         }
     </style>
@@ -265,11 +401,29 @@
         
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
+        <!-- Mobile Controls -->
+        <div class="mobile-controls">
+            <div class="movement-controls">
+                <button class="move-btn" id="leftBtn">←</button>
+                <button class="shoot-btn" id="shootBtn">FIRE</button>
+                <button class="move-btn" id="rightBtn">→</button>
+            </div>
+            <button class="pause-btn" id="pauseBtn">⏸ PAUSE</button>
+        </div>
+        
+        <!-- Touch Area for Alternative Control -->
+        <div class="touch-area" id="touchArea">
+            <div class="touch-instructions">
+                Touch left/right side to move<br>
+                Tap center to shoot
+            </div>
+        </div>
+        
         <div class="start-screen" id="startScreen">
             <h2>5p4c3 1nv4d3r5</h2>
             <p>Defend Earth from waves of alien invaders!</p>
-            <p>Use arrow keys or WASD to move</p>
-            <p>Press SPACE to shoot</p>
+            <p>Use arrow keys, WASD, or touch controls to move</p>
+            <p>Press SPACE or tap FIRE to shoot</p>
             <button class="start-btn" id="startBtn">Start Game</button>
         </div>
         
@@ -285,14 +439,10 @@
                 <h2>How to Play</h2>
                 <h3>Controls</h3>
                 <div class="controls-grid">
-                    <div class="control-item">←→ Arrow Keys</div>
-                    <div class="control-item">Move Ship</div>
-                    <div class="control-item">A/D Keys</div>
-                    <div class="control-item">Move Ship</div>
-                    <div class="control-item">SPACE</div>
-                    <div class="control-item">Shoot</div>
-                    <div class="control-item">ESC</div>
-                    <div class="control-item">Pause</div>
+                    <div class="control-item">Desktop: Arrow Keys / A,D</div>
+                    <div class="control-item">Desktop: SPACE / ESC</div>
+                    <div class="control-item">Mobile: Touch buttons</div>
+                    <div class="control-item">Mobile: Touch screen areas</div>
                 </div>
                 <h3>Objective</h3>
                 <p>Destroy all alien invaders before they reach Earth!</p>
@@ -333,8 +483,18 @@
                 this.lastEnemyShot = 0;
                 this.enemyShotDelay = 1000;
                 
+                // Mobile controls state
+                this.mobileControls = {
+                    left: false,
+                    right: false,
+                    autoShoot: false
+                };
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                this.autoShootInterval = null;
+                
                 this.initializeEnemies();
                 this.setupEventListeners();
+                this.setupCanvas();
                 this.updateDisplay();
             }
             
@@ -402,6 +562,13 @@
                 document.getElementById('closeHelp').addEventListener('click', () => {
                     document.getElementById('helpModal').style.display = 'none';
                 });
+                
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    this.setupCanvas();
+                });
+                
+                this.setupMobileControls();
             }
             
             startGame() {
@@ -505,11 +672,170 @@
                 }
             }
             
+            setupMobileControls() {
+                // Mobile button controls
+                const leftBtn = document.getElementById('leftBtn');
+                const rightBtn = document.getElementById('rightBtn');
+                const shootBtn = document.getElementById('shootBtn');
+                const pauseBtn = document.getElementById('pauseBtn');
+                const touchArea = document.getElementById('touchArea');
+                
+                // Left button
+                leftBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.left = true;
+                });
+                leftBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.left = false;
+                });
+                leftBtn.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.left = false;
+                });
+                
+                // Right button
+                rightBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.right = true;
+                });
+                rightBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.right = false;
+                });
+                rightBtn.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.right = false;
+                });
+                
+                // Shoot button - support both tap and hold
+                shootBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (this.gameState === 'playing') {
+                        this.shoot();
+                        this.mobileControls.autoShoot = true;
+                        this.startAutoShoot();
+                    }
+                });
+                shootBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.autoShoot = false;
+                    this.stopAutoShoot();
+                });
+                shootBtn.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    this.mobileControls.autoShoot = false;
+                    this.stopAutoShoot();
+                });
+                
+                // Pause button
+                pauseBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.togglePause();
+                });
+                
+                // Touch area controls
+                touchArea.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleTouchStart(e);
+                });
+                touchArea.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    this.handleTouchMove(e);
+                });
+                touchArea.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.handleTouchEnd(e);
+                });
+                
+                // Also add mouse support for testing
+                leftBtn.addEventListener('mousedown', () => this.mobileControls.left = true);
+                leftBtn.addEventListener('mouseup', () => this.mobileControls.left = false);
+                leftBtn.addEventListener('mouseleave', () => this.mobileControls.left = false);
+                
+                rightBtn.addEventListener('mousedown', () => this.mobileControls.right = true);
+                rightBtn.addEventListener('mouseup', () => this.mobileControls.right = false);
+                rightBtn.addEventListener('mouseleave', () => this.mobileControls.right = false);
+                
+                shootBtn.addEventListener('click', () => {
+                    if (this.gameState === 'playing') {
+                        this.shoot();
+                    }
+                });
+            }
+            
+            handleTouchStart(e) {
+                if (this.gameState !== 'playing') return;
+                
+                const touch = e.touches[0];
+                const rect = e.target.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const width = rect.width;
+                
+                if (x < width * 0.3) {
+                    this.mobileControls.left = true;
+                } else if (x > width * 0.7) {
+                    this.mobileControls.right = true;
+                } else {
+                    // Center area - shoot
+                    this.shoot();
+                }
+            }
+            
+            handleTouchMove(e) {
+                if (this.gameState !== 'playing') return;
+                
+                const touch = e.touches[0];
+                const rect = e.target.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const width = rect.width;
+                
+                // Reset controls
+                this.mobileControls.left = false;
+                this.mobileControls.right = false;
+                
+                if (x < width * 0.3) {
+                    this.mobileControls.left = true;
+                } else if (x > width * 0.7) {
+                    this.mobileControls.right = true;
+                }
+            }
+            
+            handleTouchEnd(e) {
+                this.mobileControls.left = false;
+                this.mobileControls.right = false;
+            }
+            
+            startAutoShoot() {
+                if (this.autoShootInterval) return;
+                this.autoShootInterval = setInterval(() => {
+                    if (this.mobileControls.autoShoot && this.gameState === 'playing') {
+                        this.shoot();
+                    }
+                }, this.shotDelay);
+            }
+            
+            stopAutoShoot() {
+                if (this.autoShootInterval) {
+                    clearInterval(this.autoShootInterval);
+                    this.autoShootInterval = null;
+                }
+            }
+            
             handleInput() {
+                // Keyboard controls
                 if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
                     this.player.x = Math.max(0, this.player.x - this.player.speed);
                 }
                 if (this.keys['ArrowRight'] || this.keys['KeyD']) {
+                    this.player.x = Math.min(this.canvas.width - this.player.width, this.player.x + this.player.speed);
+                }
+                
+                // Mobile controls
+                if (this.mobileControls.left) {
+                    this.player.x = Math.max(0, this.player.x - this.player.speed);
+                }
+                if (this.mobileControls.right) {
                     this.player.x = Math.min(this.canvas.width - this.player.width, this.player.x + this.player.speed);
                 }
             }
@@ -615,6 +941,11 @@
             
             gameOver() {
                 this.gameState = 'gameOver';
+                this.stopAutoShoot(); // Stop auto-shooting
+                this.mobileControls.left = false;
+                this.mobileControls.right = false;
+                this.mobileControls.autoShoot = false;
+                
                 if (this.score > this.highScore) {
                     this.highScore = this.score;
                     localStorage.setItem('spaceInvadersHighScore', this.highScore);
@@ -737,6 +1068,21 @@
                 document.getElementById('score').textContent = this.score;
                 document.getElementById('highScore').textContent = this.highScore;
                 document.getElementById('lives').textContent = this.lives;
+            }
+            
+            setupCanvas() {
+                // Scale canvas for mobile devices
+                const container = document.querySelector('.game-container');
+                const containerWidth = container.clientWidth - 40; // Account for padding
+                
+                if (window.innerWidth <= 600) {
+                    const scale = Math.min(containerWidth / this.canvas.width, 0.8);
+                    this.canvas.style.width = (this.canvas.width * scale) + 'px';
+                    this.canvas.style.height = (this.canvas.height * scale) + 'px';
+                } else {
+                    this.canvas.style.width = '';
+                    this.canvas.style.height = '';
+                }
             }
             
             gameLoop() {
