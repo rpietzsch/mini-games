@@ -1060,6 +1060,14 @@
             
             if (!canvas) return;
             
+            let fullscreenTouchState = {
+                active: false,
+                player: null,
+                startY: 0,
+                lastY: 0,
+                lastTime: 0
+            };
+            
             // Canvas touch controls for smartphone mode
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -1069,65 +1077,86 @@
                 const y = touch.clientY - rect.top;
                 const canvasWidth = rect.width;
                 
+                fullscreenTouchState.active = true;
+                fullscreenTouchState.startY = y;
+                fullscreenTouchState.lastY = y;
+                fullscreenTouchState.lastTime = Date.now();
+                
                 // Determine which side was touched
                 if (x < canvasWidth / 2) {
                     // Left side - Player 1
-                    touchControls.player1.active = true;
-                    touchControls.player1.startY = y;
-                    touchControls.player1.currentY = y;
+                    fullscreenTouchState.player = 'p1';
                     if (indicator) {
                         indicator.textContent = 'P1 Active';
                         indicator.classList.add('active');
                     }
                 } else if (!player2.isAI) {
                     // Right side - Player 2 (only in PvP mode)
-                    touchControls.player2.active = true;
-                    touchControls.player2.startY = y;
-                    touchControls.player2.currentY = y;
+                    fullscreenTouchState.player = 'p2';
                     if (indicator) {
                         indicator.textContent = 'P2 Active';
                         indicator.classList.add('active');
                     }
                 }
+                
+                console.log('Fullscreen touch start:', fullscreenTouchState.player, y);
             });
             
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
+                if (!fullscreenTouchState.active) return;
+                
                 const touch = e.touches[0];
                 const rect = canvas.getBoundingClientRect();
                 const y = touch.clientY - rect.top;
+                const currentTime = Date.now();
                 
-                if (touchControls.player1.active) {
-                    const prevY = touchControls.player1.currentY;
-                    touchControls.player1.currentY = y;
-                    updatePaddleFromTouchPrecise(player1, touchControls.player1, prevY);
-                } else if (touchControls.player2.active) {
-                    const prevY = touchControls.player2.currentY;
-                    touchControls.player2.currentY = y;
-                    updatePaddleFromTouchPrecise(player2, touchControls.player2, prevY);
+                // Calculate movement speed
+                const deltaY = y - fullscreenTouchState.lastY;
+                const deltaTime = currentTime - fullscreenTouchState.lastTime;
+                
+                if (deltaTime > 0) {
+                    const speed = Math.abs(deltaY) * 0.6; // Sensitivity for fullscreen
+                    const maxSpeed = 8;
+                    const finalSpeed = Math.min(speed, maxSpeed);
+                    
+                    if (fullscreenTouchState.player === 'p1') {
+                        player1.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                    } else if (fullscreenTouchState.player === 'p2') {
+                        player2.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                    }
                 }
+                
+                fullscreenTouchState.lastY = y;
+                fullscreenTouchState.lastTime = currentTime;
+                
+                console.log('Fullscreen touch move:', fullscreenTouchState.player, deltaY, player1.vy);
             });
             
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                touchControls.player1.active = false;
-                touchControls.player2.active = false;
+                fullscreenTouchState.active = false;
+                fullscreenTouchState.player = null;
                 player1.vy = 0;
                 player2.vy = 0;
                 if (indicator) {
                     indicator.classList.remove('active');
                 }
+                
+                console.log('Fullscreen touch end');
             });
             
             canvas.addEventListener('touchcancel', (e) => {
                 e.preventDefault();
-                touchControls.player1.active = false;
-                touchControls.player2.active = false;
+                fullscreenTouchState.active = false;
+                fullscreenTouchState.player = null;
                 player1.vy = 0;
                 player2.vy = 0;
                 if (indicator) {
                     indicator.classList.remove('active');
                 }
+                
+                console.log('Fullscreen touch cancel');
             });
         }
         
@@ -1253,31 +1282,94 @@
             console.log('Touch detected on document');
         });
         
-        // Add simple canvas touch for regular mode
+        // Enhanced canvas touch controls for regular mode
         const gameCanvas = document.getElementById('gameCanvas');
+        let touchState = {
+            active: false,
+            player: null,
+            startY: 0,
+            lastY: 0,
+            lastTime: 0
+        };
+        
         if (gameCanvas) {
             gameCanvas.addEventListener('touchstart', function(e) {
                 if (smartphoneMode) return;
                 e.preventDefault();
-                console.log('Canvas touch detected');
+                
                 const touch = e.touches[0];
                 const rect = gameCanvas.getBoundingClientRect();
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
                 const canvasWidth = rect.width;
                 
+                touchState.active = true;
+                touchState.startY = y;
+                touchState.lastY = y;
+                touchState.lastTime = Date.now();
+                
                 if (x < canvasWidth / 2) {
-                    // Left side - move Player 1 paddle up
-                    player1.vy = y < rect.height / 2 ? -3 : 3;
+                    touchState.player = 'p1';
                 } else if (!player2.isAI) {
-                    // Right side - move Player 2 paddle
-                    player2.vy = y < rect.height / 2 ? -3 : 3;
+                    touchState.player = 'p2';
                 }
                 
-                setTimeout(() => {
-                    player1.vy = 0;
-                    player2.vy = 0;
-                }, 200);
+                console.log('Touch start:', touchState.player, y);
+            });
+            
+            gameCanvas.addEventListener('touchmove', function(e) {
+                if (smartphoneMode || !touchState.active) return;
+                e.preventDefault();
+                
+                const touch = e.touches[0];
+                const rect = gameCanvas.getBoundingClientRect();
+                const y = touch.clientY - rect.top;
+                const currentTime = Date.now();
+                
+                // Calculate movement speed
+                const deltaY = y - touchState.lastY;
+                const deltaTime = currentTime - touchState.lastTime;
+                
+                if (deltaTime > 0) {
+                    const speed = Math.abs(deltaY) * 0.8; // Sensitivity
+                    const maxSpeed = 8;
+                    const finalSpeed = Math.min(speed, maxSpeed);
+                    
+                    if (touchState.player === 'p1') {
+                        player1.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                    } else if (touchState.player === 'p2') {
+                        player2.vy = deltaY > 0 ? finalSpeed : -finalSpeed;
+                    }
+                }
+                
+                touchState.lastY = y;
+                touchState.lastTime = currentTime;
+                
+                console.log('Touch move:', touchState.player, deltaY, player1.vy);
+            });
+            
+            gameCanvas.addEventListener('touchend', function(e) {
+                if (smartphoneMode) return;
+                e.preventDefault();
+                
+                touchState.active = false;
+                touchState.player = null;
+                player1.vy = 0;
+                player2.vy = 0;
+                
+                console.log('Touch end');
+            });
+            
+            gameCanvas.addEventListener('touchcancel', function(e) {
+                if (smartphoneMode) return;
+                e.preventDefault();
+                
+                touchState.active = false;
+                touchState.player = null;
+                player1.vy = 0;
+                player2.vy = 0;
+                
+                console.log('Touch cancel');
             });
         }
         
