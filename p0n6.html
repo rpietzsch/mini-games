@@ -15,7 +15,7 @@
             min-height: 100vh;
             background: #1a1a2e;
             font-family: Arial, sans-serif;
-            touch-action: none;
+            touch-action: manipulation;
             user-select: none;
         }
         .game-container {
@@ -173,6 +173,7 @@
             display: block;
             margin: 0 auto;
             max-width: 100%;
+            touch-action: none;
         }
         .game-controls {
             margin-top: 20px;
@@ -215,38 +216,6 @@
         }
         .mobile-touch-areas {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1000;
-        }
-        .mobile-touch-left, .mobile-touch-right {
-            position: absolute;
-            width: 50%;
-            height: 100%;
-            top: 0;
-            opacity: 0.1;
-            background: #e94560;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5em;
-            color: white;
-            font-weight: bold;
-            touch-action: none;
-            user-select: none;
-        }
-        .mobile-touch-left {
-            left: 0;
-        }
-        .mobile-touch-right {
-            right: 0;
-        }
-        .mobile-touch-left.active, .mobile-touch-right.active {
-            opacity: 0.2;
-            background: #d63447;
         }
         .game-over {
             color: #e94560;
@@ -290,6 +259,7 @@
             border: 2px solid #e94560;
             border-radius: 5px;
             background: #000;
+            touch-action: none;
         }
         .fullscreen-score {
             color: #ecf0f1;
@@ -375,9 +345,6 @@
         @media (max-width: 768px) {
             .game-container {
                 padding: 10px;
-            }
-            .mobile-touch-areas {
-                display: block;
             }
             .score-display {
                 font-size: 32px;
@@ -953,67 +920,8 @@
         };
         
         function setupMobileControls() {
-            const mobileLeft = document.getElementById('mobileLeft');
-            const mobileRight = document.getElementById('mobileRight');
-            const canvas = document.getElementById('gameCanvas');
-            
-            // Setup canvas touch controls for regular mobile mode
-            if (canvas && !smartphoneMode) {
-                canvas.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    const x = touch.clientX - rect.left;
-                    const y = touch.clientY - rect.top;
-                    const canvasWidth = rect.width;
-                    
-                    // Determine which side was touched
-                    if (x < canvasWidth / 2) {
-                        // Left side - Player 1
-                        mobileControls.left.active = true;
-                        mobileControls.left.startY = y;
-                        mobileControls.left.currentY = y;
-                    } else if (!player2.isAI) {
-                        // Right side - Player 2 (only in PvP mode)
-                        mobileControls.right.active = true;
-                        mobileControls.right.startY = y;
-                        mobileControls.right.currentY = y;
-                    }
-                });
-                
-                canvas.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    const y = touch.clientY - rect.top;
-                    
-                    if (mobileControls.left.active) {
-                        const prevY = mobileControls.left.currentY;
-                        mobileControls.left.currentY = y;
-                        updatePaddleFromMobileTouchPrecise(player1, mobileControls.left, prevY);
-                    } else if (mobileControls.right.active && !player2.isAI) {
-                        const prevY = mobileControls.right.currentY;
-                        mobileControls.right.currentY = y;
-                        updatePaddleFromMobileTouchPrecise(player2, mobileControls.right, prevY);
-                    }
-                });
-                
-                canvas.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    mobileControls.left.active = false;
-                    mobileControls.right.active = false;
-                    player1.vy = 0;
-                    if (!player2.isAI) player2.vy = 0;
-                });
-                
-                canvas.addEventListener('touchcancel', (e) => {
-                    e.preventDefault();
-                    mobileControls.left.active = false;
-                    mobileControls.right.active = false;
-                    player1.vy = 0;
-                    if (!player2.isAI) player2.vy = 0;
-                });
-            }
+            // Mobile controls setup
+            console.log('Mobile controls setup called');
         }
         
         function updatePaddleFromMobileTouchPrecise(player, touchControl, prevY) {
@@ -1339,6 +1247,39 @@
         
         // Initialize mobile options
         initializeMobileOptions();
+        
+        // Test touch functionality
+        document.addEventListener('touchstart', function(e) {
+            console.log('Touch detected on document');
+        });
+        
+        // Add simple canvas touch for regular mode
+        const gameCanvas = document.getElementById('gameCanvas');
+        if (gameCanvas) {
+            gameCanvas.addEventListener('touchstart', function(e) {
+                if (smartphoneMode) return;
+                e.preventDefault();
+                console.log('Canvas touch detected');
+                const touch = e.touches[0];
+                const rect = gameCanvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                const canvasWidth = rect.width;
+                
+                if (x < canvasWidth / 2) {
+                    // Left side - move Player 1 paddle up
+                    player1.vy = y < rect.height / 2 ? -3 : 3;
+                } else if (!player2.isAI) {
+                    // Right side - move Player 2 paddle
+                    player2.vy = y < rect.height / 2 ? -3 : 3;
+                }
+                
+                setTimeout(() => {
+                    player1.vy = 0;
+                    player2.vy = 0;
+                }, 200);
+            });
+        }
         
         // Initialize game
         draw();
