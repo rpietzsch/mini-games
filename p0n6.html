@@ -166,11 +166,13 @@
             margin-bottom: 20px;
             font-family: 'Courier New', monospace;
         }
-        canvas {
-            border: 2px solid #0f3460;
-            background: #0f3460;
+        #gameCanvas {
+            border: 2px solid #e94560;
+            border-radius: 5px;
+            background: #000;
             display: block;
             margin: 0 auto;
+            max-width: 100%;
         }
         .game-controls {
             margin-top: 20px;
@@ -279,7 +281,7 @@
             <span id="player1Score">0</span> - <span id="player2Score">0</span>
         </div>
         
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
         
         <div class="game-settings">
             <div class="difficulty-selector">
@@ -474,7 +476,7 @@
         
         function draw() {
             // Clear canvas
-            drawRect(0, 0, canvas.width, canvas.height, '#0f3460');
+            drawRect(0, 0, canvas.width, canvas.height, '#000000');
             
             // Draw net
             drawNet();
@@ -608,21 +610,22 @@
         }
         
         function update() {
-            if (!gameRunning || gamePaused) return;
-            
-            // Update paddles
+            // Always update paddles for responsive controls
             if (player1.vy !== 0) {
                 movePaddle(player1, player1.vy);
             }
             
             // Update player 2 - either AI or manual control
-            if (player2.isAI) {
+            if (player2.isAI && gameRunning && !gamePaused) {
                 updateAI();
-            } else if (player2.vy !== 0) {
+            } else if (!player2.isAI && player2.vy !== 0) {
                 movePaddle(player2, player2.vy);
             }
             
-            updateBall();
+            // Only update ball and game logic when game is running
+            if (gameRunning && !gamePaused) {
+                updateBall();
+            }
         }
         
         function gameLoop() {
